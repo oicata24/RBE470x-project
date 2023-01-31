@@ -13,28 +13,27 @@ from entity import CharacterEntity
 sys.path.insert(1, '/home/cb/RBE470x-project/team10')
 
 # Uncomment this if you want the empty test character
-#from testcharacter import TestCharacter
+from testcharacter import TestCharacter
 
 # Uncomment this if you want the interactive character
-from interactivecharacter import InteractiveCharacter
+# from interactivecharacter import InteractiveCharacter
 
 # Create the game
-g = game.fromfile('map.txt')
+g = Game.fromfile('/home/cb/RBE470x-project/team10/project1/map.txt')
 
 # TODO Add your character
-me = InteractiveCharacter
 
 # Uncomment this if you want the test character
-# g.add_character(TestCharacter("me", # name
-#                               "C",  # avatar
-#                               0, 0  # position
-# ))
+g.add_character(TestCharacter("me", # name
+                            "C",  # avatar
+                            0, 0  # position
+))
 
 # Uncomment this if you want the interactive character
-g.add_character(InteractiveCharacter("me", # name
-                                     "C",  # avatar
-                                     0, 0  # position
-))
+# g.add_character(InteractiveCharacter("me", # name
+#                                      "C",  # avatar
+#                                      0, 0  # position
+# ))
 
 # Run!
 
