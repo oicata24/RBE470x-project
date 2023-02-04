@@ -13,6 +13,8 @@ class TestCharacter(CharacterEntity):
     #     self.wrld = World
     
     def is_cell_walkable(self,wrld, x, y):
+        if wrld.monsters_at(x, y):
+            return False
         if x > wrld.width() -1 or y > wrld.height() - 1:
             return False
         if x < 0 or y < 0:
@@ -145,4 +147,14 @@ class TestCharacter(CharacterEntity):
             dx = cell[0] - self.x
             dy = cell[1] - self.y
             self.move(dx,dy)
+        else: #there are monsters here, change this based on how smart they are
+            start = (self.x, self.y)
+            end = wrld.exitcell
+            path = self.a_star(wrld, start, end)
+            # for cell in path:
+            cell = path[0]
+            dx = cell[0] - self.x
+            dy = cell[1] - self.y
+            self.move(dx,dy)
+
 
