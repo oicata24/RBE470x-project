@@ -11,22 +11,17 @@ from enum import Enum
 
 MINIMAX_DEPTH = 6
 
-class variation(Enum):
+class variation(Enum): ## use if you want to do different actions per variant
     VARIANT_1 = 1
     VARIANT_2 = 2
     VARIANT_3 = 3
     VARIANT_4 = 4
     VARIANT_5 = 5
 
-class character_mode(Enum):
-    pursuit = 0
-    retreat = 1
-
 class TestCharacter(CharacterEntity):
-    def __init__(self, name, avatar, x, y):
-        super().__init__(name, avatar, x, y)
-        self.blacklist = set()
-        self.retreat_from = (0, 0)
+    # def __init__(self, name, avatar, x, y): UNCOMMENT IF GLOBAL VARIABLE NEEDED
+    #     super().__init__(name, avatar, x, y)
+    #     self.blacklist = set()
     
     def is_cell_walkable(self,wrld, x, y):
         if wrld.monsters_at(x, y):
@@ -39,12 +34,6 @@ class TestCharacter(CharacterEntity):
             return False
         if wrld.monsters_at(x,y):
             return False
-        # if recursive:
-        #     for next in self.neighbors_of_8(wrld, x, y, False):
-        #         if next in self.blacklist:
-        #             return False
-        # if (x,y) in self.blacklist: ## we dont want to get within one space of the monster so leave this out
-        #     return False
         
         return True
 
@@ -170,6 +159,7 @@ class TestCharacter(CharacterEntity):
         # Nothing found
         return (False, 0, 0)
     
+    ## PROTOTYPE MINIMAX
     # def minimax(self, wrld, dx, dy):
     #     start = (self.x, self.y)
     #     end = wrld.exitcell
@@ -190,22 +180,22 @@ class TestCharacter(CharacterEntity):
         if depth == 0:
             return self.heuristic(wrld, character, monster)
         
-        if is_maximizing:
+        if is_maximizing: ## Character is the maximizing entity
             best_value = float('-inf')
             moves = self.neighbors_of_8(wrld, character[0], character[1])
             for move in moves:
                 character_move = (move[0] - character[0], move[1] - character[1])
                 value = self.minimax(wrld, character_move, monster, depth - 1, False)
                 best_value = max(best_value, value)
-            return best_value
-        else:
+            return best_value ## Return the Characters best move
+        else: ## Monster is the minimizing entitiy
             best_value = float('inf')
             moves = self.neighbors_of_8(wrld, monster[0], monster[1])
             for move in moves:
                 monster_move = (move[0] - monster[0], move[1] - monster[1])
                 value = self.minimax(wrld, character, monster_move, depth - 1, True)
                 best_value = min(best_value, value)
-            return best_value
+            return best_value ## return the monsters best move
     
     def get_best_move(self, wrld, monster):
         best_value = float('-inf')
@@ -217,7 +207,7 @@ class TestCharacter(CharacterEntity):
             if value > best_value:
                 best_value = value
                 best_move = move
-        return best_move
+        return best_move ## The best heuristic value according to the minimax algorithim
 
     def heuristic(self, wrld, friendly, enemy):
         friendly_distance = self.manhattan_distance(friendly, wrld.exitcell)
@@ -248,25 +238,18 @@ class TestCharacter(CharacterEntity):
             ## DUMB monsters we treat as normal, Variant 2\
             start = (self.x, self.y)
             end = wrld.exitcell
-            monsters_at = self.look_for_monster(wrld, 2)
+            monsters_at = self.look_for_monster(wrld, 2) ## Checking to see if mnster exists within a range of 2
             path = []
             cell = None
-            if monsters_at[0] is True:
+            if monsters_at[0] is True: ## Yes monsters within range
                 path = self.get_best_move(wrld, (self.x+monsters_at[0], self.y+monsters_at[1]))
                 cell = path
-            else:
+            else: ## no monsters nearby proceed as normal
                 path = self.a_star(wrld, start, end)
                 cell = path[0]
-            # for cell in path:
-            
             dx = cell[0] - self.x
             dy = cell[1] - self.y
             self.move(dx,dy)
-            self.blacklist.clear()
-        # if self.mode == character_mode.retreat:
-        #     start = (self.x, self.y)
-        #         end = wrld.exitcell
-        #     self.a_star(wrld, )
 
 
 
