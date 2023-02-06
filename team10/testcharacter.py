@@ -1,7 +1,7 @@
 # This is necessary to find the main code
 import sys
 import math
-sys.path.insert(0, '../bomberman')
+sys.path.insert(0, '/home/cb/RBE470x-project/Bomberman')
 # Import necessary stuff
 from entity import CharacterEntity
 from colorama import Fore, Back
@@ -9,6 +9,7 @@ from world import World
 import priority_queue
 from enum import Enum
 
+MINIMAX_DEPTH = 6
 
 class variation(Enum):
     VARIANT_1 = 1
@@ -27,7 +28,7 @@ class TestCharacter(CharacterEntity):
         self.blacklist = set()
         self.retreat_from = (0, 0)
     
-    def is_cell_walkable(self,wrld, x, y, recursive=bool):
+    def is_cell_walkable(self,wrld, x, y):
         if wrld.monsters_at(x, y):
             return False
         if x > wrld.width() -1 or y > wrld.height() - 1:
@@ -38,16 +39,16 @@ class TestCharacter(CharacterEntity):
             return False
         if wrld.monsters_at(x,y):
             return False
-        if recursive:
-            for next in self.neighbors_of_8(wrld, x, y, False):
-                if next in self.blacklist:
-                    return False
+        # if recursive:
+        #     for next in self.neighbors_of_8(wrld, x, y, False):
+        #         if next in self.blacklist:
+        #             return False
         # if (x,y) in self.blacklist: ## we dont want to get within one space of the monster so leave this out
         #     return False
         
         return True
 
-    def neighbors_of_4(self, wrld, x, y, recursive):
+    def neighbors_of_4(self, wrld, x, y):
         """
         Returns the walkable 4-neighbors cells of (x,y) in the grid.
         :param x       [int]           The X coordinate in the grid.
@@ -56,21 +57,21 @@ class TestCharacter(CharacterEntity):
         """
         return_list = list()
         # Never
-        if(self.is_cell_walkable(wrld, x, y+1, recursive)):
+        if(self.is_cell_walkable(wrld, x, y+1)):
             return_list.append((x,y+1))
-        # Eat
-        if(self.is_cell_walkable(wrld, x+1, y, recursive)):
+        # Eatneighbors_of_8
+        if(self.is_cell_walkable(wrld, x+1, y)):
             return_list.append((x+1,y))
         # Soggy
-        if(self.is_cell_walkable(wrld, x, y-1, recursive)):
+        if(self.is_cell_walkable(wrld, x, y-1)):
             return_list.append((x,y-1))
         # Watermelons
-        if(self.is_cell_walkable(wrld, x-1, y, recursive)):
+        if(self.is_cell_walkable(wrld, x-1, y)):
             return_list.append((x-1,y))
         
         return return_list
 
-    def neighbors_of_8(self, wrld, x, y, recursive):
+    def neighbors_of_8(self, wrld, x, y):
         """
         Returns the walkable 8-neighbors cells of (x,y) in the grid.
         :param x       [int]           The X coordinate in the grid.
@@ -79,18 +80,18 @@ class TestCharacter(CharacterEntity):
         """
         return_list = list()
         # add the list of walkable neighbor of 4 grid coordinates
-        return_list.extend(self.neighbors_of_4(wrld, x, y, recursive)) 
+        return_list.extend(self.neighbors_of_4(wrld, x, y)) 
         #  Quadrant 1
-        if(self.is_cell_walkable(wrld, x+1, y+1, recursive)):
+        if(self.is_cell_walkable(wrld, x+1, y+1)):
             return_list.append((x+1,y+1))
         #  Quadrant 3
-        if(self.is_cell_walkable(wrld, x-1, y-1, recursive)):
+        if(self.is_cell_walkable(wrld, x-1, y-1)):
             return_list.append((x-1,y-1))
         #  Quadrant 2
-        if(self.is_cell_walkable(wrld, x-1, y+1, recursive)):
+        if(self.is_cell_walkable(wrld, x-1, y+1)):
             return_list.append((x-1,y+1))
         #  Quadrant 4
-        if(self.is_cell_walkable(wrld, x+1, y-1, recursive)):
+        if(self.is_cell_walkable(wrld, x+1, y-1)):
             return_list.append((x+1,y-1))
         
         return return_list
@@ -116,7 +117,7 @@ class TestCharacter(CharacterEntity):
         ### REQUIRED CREDIT
         return math.sqrt( pow((x2 - x1), 2) + pow((y2 - y1), 2))
 
-    def a_star(self, wrld, start, goal, recursive):
+    def a_star(self, wrld, start, goal):
         path = []
 
         frontier = priority_queue.PriorityQueue()
@@ -138,7 +139,7 @@ class TestCharacter(CharacterEntity):
             y = current[1]
             
 
-            for next in self.neighbors_of_8(wrld, x, y, recursive):
+            for next in self.neighbors_of_8(wrld, x, y):
                 new_cost = cost_so_far[current] + self.euclidean_distance(current[0], current[1], next[0], next[1])
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
@@ -187,10 +188,11 @@ class TestCharacter(CharacterEntity):
 
     def minimax(self, wrld, character, monster, depth, is_maximizing):
         if depth == 0:
-            return self.heuristic((self.x,self.y), monster)
-        moves = self.neighbors_of_8(wrld, )
+            return self.heuristic(wrld, character, monster)
+        
         if is_maximizing:
             best_value = float('-inf')
+            moves = self.neighbors_of_8(wrld, character[0], character[1])
             for move in moves:
                 character_move = (move[0] - character[0], move[1] - character[1])
                 value = self.minimax(wrld, character_move, monster, depth - 1, False)
@@ -198,18 +200,20 @@ class TestCharacter(CharacterEntity):
             return best_value
         else:
             best_value = float('inf')
+            moves = self.neighbors_of_8(wrld, monster[0], monster[1])
             for move in moves:
                 monster_move = (move[0] - monster[0], move[1] - monster[1])
                 value = self.minimax(wrld, character, monster_move, depth - 1, True)
                 best_value = min(best_value, value)
             return best_value
     
-    def get_best_move(friendly, enemy):
+    def get_best_move(self, wrld, monster):
         best_value = float('-inf')
         best_move = None
-        for move in MOVES:
-            new_friendly = move_position(friendly, move)
-            value = minimax(new_friendly, enemy, DEPTH, False)
+        moves = self.neighbors_of_8(wrld, self.x, self.y)
+        for move in moves:
+            new_friendly = (move[0] - self.x, move[1] - self.y)
+            value = self.minimax(wrld, new_friendly, monster, MINIMAX_DEPTH, False)
             if value > best_value:
                 best_value = value
                 best_move = move
@@ -220,7 +224,7 @@ class TestCharacter(CharacterEntity):
         enemy_distance = self.manhattan_distance(enemy, friendly)
         return friendly_distance - enemy_distance
 
-    def manhattan_distance(position1, position2):
+    def manhattan_distance(self, position1, position2):
         x1, y1 = position1
         x2, y2 = position2
         return abs(x1 - x2) + abs(y1 - y2)
@@ -234,7 +238,7 @@ class TestCharacter(CharacterEntity):
         if not wrld.monsters:
             start = (self.x, self.y)
             end = wrld.exitcell
-            path = self.a_star(wrld, start, end, False)
+            path = self.a_star(wrld, start, end)
             # for cell in path:
             cell = path[0]
             dx = cell[0] - self.x
@@ -246,12 +250,15 @@ class TestCharacter(CharacterEntity):
             end = wrld.exitcell
             monsters_at = self.look_for_monster(wrld, 2)
             path = []
+            cell = None
             if monsters_at[0] is True:
-                path = self.minimax(wrld, monsters_at[1], monsters_at[2])
+                path = self.get_best_move(wrld, (self.x+monsters_at[0], self.y+monsters_at[1]))
+                cell = path
             else:
-                path = self.a_star(wrld, start, end, False)
+                path = self.a_star(wrld, start, end)
+                cell = path[0]
             # for cell in path:
-            cell = path[0]
+            
             dx = cell[0] - self.x
             dy = cell[1] - self.y
             self.move(dx,dy)
