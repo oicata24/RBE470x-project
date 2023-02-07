@@ -25,6 +25,7 @@ g.add_monster(SelfPreservingMonster("selfpreserving", # name
 g.add_character(TestCharacter("me", # name
                               "C",  # avatar
                               0, 0  # position
+                              #0 #turn order
 ))
 
 # Run!
