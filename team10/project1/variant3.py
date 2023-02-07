@@ -13,7 +13,8 @@ sys.path.insert(1, '/home/cb/RBE470x-project/team10')
 from testcharacter import TestCharacter
 
 # Create the game
-random.seed(123) # TODO Change this if you want different random choices
+#907
+random.seed(456) # TODO Change this if you want different random choices
 g = Game.fromfile('/home/cb/RBE470x-project/team10/project1/map.txt')
 g.add_monster(SelfPreservingMonster("selfpreserving", # name
                                     "S",              # avatar

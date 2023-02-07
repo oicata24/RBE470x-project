@@ -9,7 +9,7 @@ from world import World
 import priority_queue
 from enum import Enum
 
-MINIMAX_DEPTH = 6
+MINIMAX_DEPTH = 4
 
 class variation(Enum): ## use if you want to do different actions per variant
     VARIANT_1 = 1
@@ -19,9 +19,12 @@ class variation(Enum): ## use if you want to do different actions per variant
     VARIANT_5 = 5
 
 class TestCharacter(CharacterEntity):
-    # def __init__(self, name, avatar, x, y): UNCOMMENT IF GLOBAL VARIABLE NEEDED
-    #     super().__init__(name, avatar, x, y)
-    #     self.blacklist = set()
+    def __init__(self, name, avatar, x, y): 
+        super().__init__(name, avatar, x, y)
+        self.bomb_placed = False
+        self.bomb_at = None
+        self.blacklist = set()
+        self.monster_at = None
     
     def is_cell_walkable(self,wrld, x, y):
         if wrld.monsters_at(x, y):
@@ -34,6 +37,12 @@ class TestCharacter(CharacterEntity):
             return False
         if wrld.monsters_at(x,y):
             return False
+        if (x,y) in self.blacklist:
+            return False
+        if self.monster_at is not None:
+            for move in self.monster_neighbors_of_8(wrld, self.monster_at[0], self.monster_at[1]):
+                if (x, y) == move:
+                    return False
         
         return True
 
@@ -70,6 +79,50 @@ class TestCharacter(CharacterEntity):
         return_list = list()
         # add the list of walkable neighbor of 4 grid coordinates
         return_list.extend(self.neighbors_of_4(wrld, x, y)) 
+        #  Quadrant 1
+        if(self.is_cell_walkable(wrld, x+1, y+1)):
+            return_list.append((x+1,y+1))
+        #  Quadrant 3
+        if(self.is_cell_walkable(wrld, x-1, y-1)):
+            return_list.append((x-1,y-1))
+        #  Quadrant 2
+        if(self.is_cell_walkable(wrld, x-1, y+1)):
+            return_list.append((x-1,y+1))
+        #  Quadrant 4
+        if(self.is_cell_walkable(wrld, x+1, y-1)):
+            return_list.append((x+1,y-1))
+        
+        return return_list
+
+    def monster_neighbors_of_8(self, wrld, x, y):
+        """
+        Returns the walkable 8-neighbors cells of (x,y) in the grid.
+        :param x       [int]           The X coordinate in the grid.
+        :param y       [int]           The Y coordinate in the grid.
+        :return        [[(int,int)]]   A list of walkable 8-neighbors.
+        """
+        return_list = list()
+        # add the list of walkable neighbor of 4 grid coordinates
+        return_list.append((x+1,y))
+        #  Quadrant 3
+        return_list.append((x-1,y))
+        #  Quadrant 2
+        return_list.append((x,y+1))
+        #  Quadrant 4
+        return_list.append((x,y-1))
+        #  Quadrant 1
+        return_list.append((x+1,y+1))
+        #  Quadrant 3
+        return_list.append((x-1,y-1))
+        #  Quadrant 2
+        return_list.append((x-1,y+1))
+        #  Quadrant 4
+        return_list.append((x+1,y-1))
+        
+        return return_list
+
+    def bomb_escape_cells(self, wrld, x, y):
+        return_list = list()
         #  Quadrant 1
         if(self.is_cell_walkable(wrld, x+1, y+1)):
             return_list.append((x+1,y+1))
@@ -139,6 +192,8 @@ class TestCharacter(CharacterEntity):
         
         path_node = (goal[0], goal[1])
         while flag:
+            if path_node not in came_from:
+                return False
             if came_from[path_node] is None :
                 flag = False
             else:
@@ -184,7 +239,8 @@ class TestCharacter(CharacterEntity):
             best_value = float('-inf')
             moves = self.neighbors_of_8(wrld, character[0], character[1])
             for move in moves:
-                character_move = (move[0] - character[0], move[1] - character[1])
+                # character_move = (move[0] - character[0], move[1] - character[1])
+                character_move = (move[0], move[1])
                 value = self.minimax(wrld, character_move, monster, depth - 1, False)
                 best_value = max(best_value, value)
             return best_value ## Return the Characters best move
@@ -192,7 +248,8 @@ class TestCharacter(CharacterEntity):
             best_value = float('inf')
             moves = self.neighbors_of_8(wrld, monster[0], monster[1])
             for move in moves:
-                monster_move = (move[0] - monster[0], move[1] - monster[1])
+                # monster_move = (move[0] - monster[0], move[1] - monster[1])
+                monster_move = (move[0], move[1])
                 value = self.minimax(wrld, character, monster_move, depth - 1, True)
                 best_value = min(best_value, value)
             return best_value ## return the monsters best move
@@ -202,8 +259,9 @@ class TestCharacter(CharacterEntity):
         best_move = None
         moves = self.neighbors_of_8(wrld, self.x, self.y)
         for move in moves:
-            new_friendly = (move[0] - self.x, move[1] - self.y)
-            value = self.minimax(wrld, new_friendly, monster, MINIMAX_DEPTH, False)
+            # new_friendly = (move[0] - self.x, move[1] - self.y)
+            new_character = (move[0], move[1])
+            value = self.minimax(wrld, new_character, monster, MINIMAX_DEPTH, False)
             if value > best_value:
                 best_value = value
                 best_move = move
@@ -219,16 +277,39 @@ class TestCharacter(CharacterEntity):
         x2, y2 = position2
         return abs(x1 - x2) + abs(y1 - y2)
 
+    def blacklist_bombsite(self, rnge):
+        bomb = self.bomb_at
+        self.blacklist.add(bomb)
+        for buffer in range(1, rnge + 1):
+            self.blacklist.add((bomb[0] + buffer, bomb[1]))
+            self.blacklist.add((bomb[0] - buffer, bomb[1]))
+            self.blacklist.add((bomb[0] , bomb[1] + buffer))
+            self.blacklist.add((bomb[0] , bomb[1] - buffer))
 
     def do(self, wrld):
         # Your code here
         # If there are no monsters on the field just path plan and execute
         var = variation.VARIANT_3
-        # if self.mode == character_mode.pursuit:
+        if self.bomb_placed is True and not wrld.explosions and not wrld.bombs:
+            self.bomb_placed = False
+            self.blacklist.clear()
+            self.bomb_at = None
         if not wrld.monsters:
             start = (self.x, self.y)
             end = wrld.exitcell
             path = self.a_star(wrld, start, end)
+            if path is False: ## no viable path to goal
+                end = (0,0)
+                path = self.a_star(wrld, start, end)
+            if path is False: ## no viable path to start and goal
+                best_move = None
+                best_value = float('inf')
+                for move in self.neighbors_of_8(wrld, start[0], start[1]):
+                    value = self.manhattan_distance(move, end)
+                    if value < best_value:
+                        best_value = value
+                        best_move = move
+                path = [best_move]
             # for cell in path:
             cell = path[0]
             dx = cell[0] - self.x
@@ -238,18 +319,84 @@ class TestCharacter(CharacterEntity):
             ## DUMB monsters we treat as normal, Variant 2\
             start = (self.x, self.y)
             end = wrld.exitcell
-            monsters_at = self.look_for_monster(wrld, 2) ## Checking to see if mnster exists within a range of 2
+            monsters_at = self.look_for_monster(wrld, 3) ## Checking to see if mnster exists within a range of 2
             path = []
             cell = None
             if monsters_at[0] is True: ## Yes monsters within range
-                path = self.get_best_move(wrld, (self.x+monsters_at[0], self.y+monsters_at[1]))
-                cell = path
+                self.monster_at = (self.x + monsters_at[1], self.y + monsters_at[2])
+                if self.bomb_placed:
+                    start = (self.x, self.y)
+                    end = (0,0)
+                    if start == end:
+                        end = (0,1)
+                    path = self.a_star(wrld, start, end)
+                    if path is False: ## no viable path to start
+                        end = wrld.exitcell
+                        path = self.a_star(wrld, start, end)
+                    if path is False: ## no viable path to both start and end
+                        best_move = None
+                        best_value = float('inf')
+                        for move in self.neighbors_of_8(wrld, start[0], start[1]):
+                            value = self.manhattan_distance(move, end)
+                            if value < best_value:
+                                best_value = value
+                                best_move = move
+                        path = [best_move]
+                    # for cell in path:
+                    cell = path[0]
+                    dx = cell[0] - self.x
+                    dy = cell[1] - self.y
+                    self.move(dx,dy)
+                    return
+                self.place_bomb()
+                self.bomb_placed = True
+                self.bomb_at = (self.x, self.y)
+                self.blacklist_bombsite(4)
+                cell = self.get_best_move(wrld, self.monster_at)
+                dx = cell[0] - self.x
+                dy = cell[1] - self.y
+                # if(dx != 0 and dy != 0):
+                #     self.move(dx,dy)
+                # else:
+                #     best_move = None
+                #     best_value = float('inf')
+                #     for move in self.bomb_escape_cells(wrld, self.x, self.y):
+                #         value = self.manhattan_distance(cell, move)
+                #         if value < best_value:
+                #             best_value = value
+                #             best_move = move
+                #     dx = best_move[0] - self.x
+                #     dy = best_move[1] - self.y
+                #     self.move(dx,dy)
+
+                # start = (self.x, self.y)
+                # end = (0,0)
+                # path = self.a_star(wrld, start, end)
+                # # for cell in path:
+                # cell = path[0]
+                # dx = cell[0] - self.x
+                # dy = cell[1] - self.y
+                self.move(dx,dy)
+                return
             else: ## no monsters nearby proceed as normal
+                self.monster_at = None
                 path = self.a_star(wrld, start, end)
+                if path is False: ## no viable path to goal
+                        end = (0,0)
+                        path = self.a_star(wrld, start, end)
+                if path is False: ## no viable path to start and goal
+                    best_move = None
+                    best_value = float('inf')
+                    for move in self.neighbors_of_8(wrld, start[0], start[1]):
+                        value = self.manhattan_distance(move, end)
+                        if value < best_value:
+                            best_value = value
+                            best_move = move
+                    path = [best_move]
                 cell = path[0]
-            dx = cell[0] - self.x
-            dy = cell[1] - self.y
-            self.move(dx,dy)
+                dx = cell[0] - self.x
+                dy = cell[1] - self.y
+                self.move(dx,dy)
 
 
 
