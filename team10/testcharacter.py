@@ -1,7 +1,7 @@
 # This is necessary to find the main code
 import sys
 import math
-sys.path.insert(0, '/home/cb/RBE470x-project/Bomberman')
+sys.path.insert(0, '/home/tyler/RBE470x-project/Bomberman')
 # Import necessary stuff
 from entity import CharacterEntity
 from colorama import Fore, Back
@@ -9,7 +9,9 @@ from world import World
 import priority_queue
 from enum import Enum
 
-MINIMAX_DEPTH = 8
+MINIMAX_DEPTH = 6
+
+
 
 class variation(Enum): ## use if you want to do different actions per variant
     VARIANT_1 = 1
@@ -22,6 +24,7 @@ class TestCharacter(CharacterEntity):
     # def __init__(self, name, avatar, x, y): UNCOMMENT IF GLOBAL VARIABLE NEEDED
     #     super().__init__(name, avatar, x, y)
     #     self.blacklist = set()
+
     
     def is_cell_walkable(self,wrld, x, y):
         if wrld.monsters_at(x, y):
@@ -89,27 +92,34 @@ class TestCharacter(CharacterEntity):
         # takes a list of cells of expected monster path and compares it to character path
         #for each cell in monster expected path, check if A* path comes within 4 perpendicular cells 
         
+
+        #i just realized all this index adding code might be non pythonic
+
         monster_index_path_instance = []
         monster_index_path = []
         #this for loop creates a list of lists, being a list of sets of three representing x,y, and turn order
         for value in mon_path:
-             l = 0
-             if l < 3:
+             l1 = 0
+             if l1 < 3:
                 monster_index_path_instance.append(value)
+                l1 = l1+1
                 return
              monster_index_path.append(monster_index_path_instance)
+             monster_index_path_instance.clear()
 
         bomber_index_path_instance = []
         bomber_index_path = []
         #we do this for the player path as well
         for value in bomber_path:
-             l = 0
-             if l < 3:
+             l2 = 0
+             if l2 < 3:
                 bomber_index_path_instance.append(value)
+                l2 = l2+1
                 return
              bomber_index_path.append(bomber_index_path_instance)
+             bomber_index_path_instance.clear()
 
-
+        
         #this for loop takes every monster index path instance from monster index path and finds the corresponding turn
         #in the player's A* path, if the cells are within 4 perpendicular cells of one another, the player is instructed to 
         #place a bomb at that cell
@@ -118,7 +128,7 @@ class TestCharacter(CharacterEntity):
         for monster_turn in monster_index_path:
             for char_turn in bomber_index_path:
                 if char_turn(2) == monster_turn(2):
-                    if char_turn(0) == monster_turn(0) and abs(char_turn(1) - monster_turn(1)) < 4 and char_turn(1) == monster_turn(1) and abs(char_turn(0) - monster_turn(0)) < 4:
+                    if (char_turn[0] == monster_turn[0] and abs(char_turn[1] - monster_turn[1]) < 4) or (char_turn[1] == monster_turn[1] and abs(char_turn[0] - monster_turn[0]) < 4):
                         bombsite = True
                     bombsite = False
 
@@ -132,9 +142,9 @@ class TestCharacter(CharacterEntity):
     def get_monster_path(self, wrld):
         #takes in a single move from the monster and creates a list of cells that represents the monster's expected path.
         monster_path = []
-        monster_pose = wrld.get_monster_pose()
-        monster_coord = {monster_pose(0), monster_pose(1)}
-        monster_dir = monster_pose(2)
+        monster_pose = self.get_monster_pose(wrld)
+        monster_coord = [monster_pose[0], monster_pose[1]]
+        monster_dir = monster_pose[2]
 
         current = monster_coord
         #this if statement sets the monster path index (or monster's turn order) to zero if its the first loop
@@ -142,79 +152,94 @@ class TestCharacter(CharacterEntity):
         first = True
         if (first is not True):
             i = i
-            return
+            
         else:
             i = 0
+            
 
         first = False
         L = 1
         while L == 1:
 
             if monster_dir == 1: #right
-                if current == (self.is_cell_walkable(wrld, current(0)+1, current(1))):
-                    monster_path.append((current(0))+1, current(1))
+                if current == (self.is_cell_walkable(wrld, current[0]+1, current[1])):
+                    monster_path.append((current[0])+1, current[1])
                     i = i+1
                     monster_path.append(i)
                 else:
                     L= 0
                 return
             elif monster_dir == 2: #left
-                if current == (self.is_cell_walkable(wrld, current(0)-1, current(1))):
-                    monster_path.append((current(0)-1), current(1))
+                if current == (self.is_cell_walkable(wrld, current[0]-1, current[1])):
+                    monster_path.append((current[0]-1), current[1])
                     i = i+1
                     monster_path.append(i)
                 else:
                     L= 0
                 return
             elif monster_dir == 3:# up
-                if current == (self.is_cell_walkable(wrld, current(0), current(1)+1)):
-                    monster_path.append((current(0)), current(1)+1)
+                if current == (self.is_cell_walkable(wrld, current[0], current[1]+1)):
+                    monster_path.append((current[0]), current[1]+1)
                     i = i+1
                     monster_path.append(i)
                 else:
                     L= 0
                 return
             elif monster_dir == 4: #down
-                if current == (self.is_cell_walkable(wrld, current(0), current(1)-1)):
-                    monster_path.append((current(0)), current(1)-1)
+                if current == (self.is_cell_walkable(wrld, current[0], current[1]-1)):
+                    monster_path.append((current[0]), current[1]-1)
                     i = i+1
                     monster_path.append(i)
                 else:
                     L= 0
                 return
             elif monster_dir == 5:# top right
-                if current == (self.is_cell_walkable(wrld, current(0)+1, current(1)+1)):
-                    monster_path.append((current(0)+1), current(1)+1)
+                if current == (self.is_cell_walkable(wrld, current[0]+1, current[1]+1)):
+                    monster_path.append((current[0]+1), current[1]+1)
                     i = i+1
                     monster_path.append(i)
                 else:
                     L= 0
                 return
             elif monster_dir == 6: #bottom right
-                if current == (self.is_cell_walkable(wrld, current(0)+1, current(1)-1)):
-                    monster_path.append((current(0)+1), current(1)-1)
+                if current == (self.is_cell_walkable(wrld, current[0]+1, current[1]-1)):
+                    monster_path.append((current[0]+1), current[1]-1)
                     i = i+1
                     monster_path.append(i)
                 else:
                     L= 0
                 return
             elif monster_dir == 7: #bottom left
-                if current == (self.is_cell_walkable(wrld, current(0)-1, current(1)+1)):
-                    monster_path.append((current(0)-1), current(1)+1)
+                if current == (self.is_cell_walkable(wrld, current[0]-1, current[1]+1)):
+                    monster_path.append((current[0]-1), current[1]+1)
                     i = i+1
                     monster_path.append(i)
                 else:
                     L= 0
                 return
             elif monster_dir == 8: #top left
-                if current == (self.is_cell_walkable(wrld, current(0)-1, current(1)-1)):
-                    monster_path.append((current(0)-1), current(1)-1)
+                if current == (self.is_cell_walkable(wrld, current[0]-1, current[1]-1)):
+                    monster_path.append((current[0]-1), current[1]-1)
                     i = i+1
                     monster_path.append(i)
                 else:
                     L= 0
                 return
 
+        test_monster_index_path_instance = []
+        test_monster_index_path = []
+        #this for loop creates a list of lists, being a list of sets of three representing x,y, and turn order
+        for value in monster_path:
+             m = 0
+             if m < 2:
+                test_monster_index_path_instance.append(value)
+                m=m+1
+                return
+             test_monster_index_path.append(test_monster_index_path_instance)
+             test_monster_index_path_instance.clear()
+        
+        for instance in test_monster_index_path:
+            self.set_cell_color(instance[0], instance[1], Fore.RED + Back.GREEN)
 
         return monster_path
 
@@ -226,47 +251,47 @@ class TestCharacter(CharacterEntity):
 
         for x in range(wrld.height()):
                 for y in range(wrld.width()):
-                    if wrld.monsters_at and next_pos is {0,0}:
-                        first_pos = {x, y}
+                    if wrld.monsters_at and next_pos is [0,0]:
+                        first_pos = [x, y]
                     else:
-                        next_pos = {x, y}
+                        next_pos = [x, y]
 
         #then use the difference of next pos and first pos to calculate trajectory
         
-        if first_pos(0) - next_pos(0) is -1 and first_pos(1) - next_pos(1) is 0:
+        if first_pos[0] - next_pos[0] == -1 and first_pos[1] - next_pos[1] == 0:
             #going right
-            monster_pose = {next_pos(0),next_pos(1),1}
+            monster_pose = [next_pos[0],next_pos[1],1]
             return 
-        elif first_pos(0) - next_pos(0) is 1 and first_pos(1) - next_pos(1) is 0:
+        elif first_pos[0] - next_pos[0] == 1 and first_pos[1] - next_pos[1] == 0:
             #going left
-            monster_pose = {next_pos(0),next_pos(1),2}
+            monster_pose = [next_pos[0],next_pos[1],2]
             return
-        elif first_pos(0) - next_pos(0) is 0 and first_pos(1) - next_pos(1) is -1:
+        elif first_pos[0] - next_pos[0] == 0 and first_pos[1] - next_pos[1] == -1:
             #going up
-            monster_pose = {next_pos(0),next_pos(1),3}
+            monster_pose = [next_pos[0],next_pos[1],3]
             return
-        elif first_pos(0) - next_pos(0) is 0 and first_pos(1) - next_pos(1) is 1:
+        elif first_pos[0] - next_pos[0] == 0 and first_pos[1] - next_pos[1] == 1:
             #going down
-            monster_pose = {next_pos(0),next_pos(1),4}
+            monster_pose = [next_pos[0],next_pos[1],4]
             return
-        elif first_pos(0) - next_pos(0) is -1 and first_pos(1) - next_pos(1) is -1:
+        elif first_pos[0] - next_pos[0] == -1 and first_pos[1] - next_pos[1] == -1:
             #quadrant 1 / top right
-            monster_pose = {next_pos(0),next_pos(1),5}
+            monster_pose = [next_pos[0],next_pos[1],5]
             return
-        elif first_pos(0) - next_pos(0) is -1 and first_pos(1) - next_pos(1) is 1:
+        elif first_pos[0] - next_pos[0] == -1 and first_pos[1] - next_pos[1] == 1:
             #quadrant 2 / bottom right
-            monster_pose = {next_pos(0),next_pos(1),6}
+            monster_pose = [next_pos[0],next_pos[1],6]
             return    
-        elif first_pos(0) - next_pos(0) is 1 and first_pos(1) - next_pos(1) is -1:
+        elif first_pos[0] - next_pos[0] == 1 and first_pos[1] - next_pos[1] == -1:
             #quadrant 3 / top left
-            monster_pose = {next_pos(0),next_pos(1),7}
+            monster_pose = [next_pos[0],next_pos[1],7]
             return  
-        elif first_pos(0) - next_pos(0) is 1 and first_pos(1) - next_pos(1) is 1:
+        elif first_pos[0] - next_pos[0] == 1 and first_pos[1] - next_pos[1] == 1:
             #quadrant 4 / bottom left
-            monster_pose = {next_pos(0),next_pos(1),8}
+            monster_pose = [next_pos[0],next_pos[1],8]
             return
                 
-            return  
+        
 
         return monster_pose
            
@@ -409,12 +434,15 @@ class TestCharacter(CharacterEntity):
         x2, y2 = position2
         return abs(x1 - x2) + abs(y1 - y2)
 
+    ip = 0
 
     def do(self, wrld):
         # Your code here
         # If there are no monsters on the field just path plan and execute
         var = variation.VARIANT_3
         # if self.mode == character_mode.pursuit:
+        ip = 0
+        
         if not wrld.monsters:
             start = (self.x, self.y)
             end = wrld.exitcell
@@ -426,24 +454,34 @@ class TestCharacter(CharacterEntity):
             self.move(dx,dy)
         else: #there are monsters here, change this based on how smart they are
             ## DUMB monsters we treat as normal, Variant 2\
+
             start = (self.x, self.y)
             end = wrld.exitcell
             #for bomb funct
-            self.bomb_in_range(wrld, self.get_monster_path(wrld), self.a_star((wrld, start, end)))
+            ###
 
-
+            
+            
             monsters_at = self.look_for_monster(wrld, 2) ## Checking to see if mnster exists within a range of 2
             path = []
             cell = None
             if monsters_at[0] is True: ## Yes monsters within range
+                
+                #stop gap funct to see how the monster reacts to a bomb make sure to return to original
+                
                 path = self.get_best_move(wrld, (self.x+monsters_at[0], self.y+monsters_at[1]))
+        
                 cell = path
+                
             else: ## no monsters nearby proceed as normal
                 path = self.a_star(wrld, start, end)
                 cell = path[0]
+            
             dx = cell[0] - self.x
             dy = cell[1] - self.y
             self.move(dx,dy)
+
+            self.bomb_in_range(wrld, self.get_monster_path(wrld), self.a_star((wrld, start, end))) 
 
 
 
