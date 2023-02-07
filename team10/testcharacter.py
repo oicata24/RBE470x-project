@@ -21,10 +21,13 @@ class variation(Enum): ## use if you want to do different actions per variant
     VARIANT_5 = 5
 
 class TestCharacter(CharacterEntity):
-    # def __init__(self, name, avatar, x, y): UNCOMMENT IF GLOBAL VARIABLE NEEDED
-    #     super().__init__(name, avatar, x, y)
-    #     self.blacklist = set()
-
+    def __init__(self, name, avatar, x, y): #UNCOMMENT IF GLOBAL VARIABLE NEEDED
+        super().__init__(name, avatar, x, y)
+        
+        self.blacklist = set()
+        
+        
+    
     
     def is_cell_walkable(self,wrld, x, y):
         if wrld.monsters_at(x, y):
@@ -139,10 +142,19 @@ class TestCharacter(CharacterEntity):
 
         return
 
-    def get_monster_path(self, wrld):
+    def get_monster_path(self, wrld, turnloops):
         #takes in a single move from the monster and creates a list of cells that represents the monster's expected path.
         monster_path = []
+
+        
+        if turnloops<1:
+            self.get_monster_pose(wrld)
+            return
+
         monster_pose = self.get_monster_pose(wrld)
+
+
+
         monster_coord = [monster_pose[0], monster_pose[1]]
         monster_dir = monster_pose[2]
 
@@ -245,57 +257,71 @@ class TestCharacter(CharacterEntity):
 
     def get_monster_pose(self, wrld):
         #first, find monster position
-        first_pos = [0,0]
-        next_pos = [0,0]
-        monster_pose = [0,0,0]
+        
+        monster_pose = []
 
-        for x in range(wrld.height()):
-                for y in range(wrld.width()):
-                    if wrld.monsters_at and next_pos is [0,0]:
+
+        first_pos = self.get_monster_coord(wrld)
+
+        if first_pos != []:
+            next_pos = self.get_monster_coord(wrld)
+
+        for x in range(wrld.width()):
+                for y in range(wrld.height()):
+                    if wrld.monsters_at(x,y) and first_pos == [0,0]:
                         first_pos = [x, y]
-                    else:
+                    elif wrld.monsters_at(x,y) and first_pos is not [0,0]:
                         next_pos = [x, y]
 
         #then use the difference of next pos and first pos to calculate trajectory
+        try:
+            if first_pos[0] - next_pos[0] == -1 and first_pos[1] - next_pos[1] == 0:
+                #going right
+                monster_pose = [next_pos[0],next_pos[1],1]
+                return 
+            elif first_pos[0] - next_pos[0] == 1 and first_pos[1] - next_pos[1] == 0:
+                #going left
+                monster_pose = [next_pos[0],next_pos[1],2]
+                return
+            elif first_pos[0] - next_pos[0] == 0 and first_pos[1] - next_pos[1] == -1:
+                #going up
+                monster_pose = [next_pos[0],next_pos[1],3]
+                return
+            elif first_pos[0] - next_pos[0] == 0 and first_pos[1] - next_pos[1] == 1:
+                #going down
+                monster_pose = [next_pos[0],next_pos[1],4]
+                return
+            elif first_pos[0] - next_pos[0] == -1 and first_pos[1] - next_pos[1] == -1:
+                #quadrant 1 / top right
+                monster_pose = [next_pos[0],next_pos[1],5]
+                return
+            elif first_pos[0] - next_pos[0] == -1 and first_pos[1] - next_pos[1] == 1:
+                #quadrant 2 / bottom right
+                monster_pose = [next_pos[0],next_pos[1],6]
+                return    
+            elif first_pos[0] - next_pos[0] == 1 and first_pos[1] - next_pos[1] == -1:
+                #quadrant 3 / top left
+                monster_pose = [next_pos[0],next_pos[1],7]
+                return  
+            elif first_pos[0] - next_pos[0] == 1 and first_pos[1] - next_pos[1] == 1:
+                #quadrant 4 / bottom left
+                monster_pose = [next_pos[0],next_pos[1],8]
+                return
+        except:
+            return
         
-        if first_pos[0] - next_pos[0] == -1 and first_pos[1] - next_pos[1] == 0:
-            #going right
-            monster_pose = [next_pos[0],next_pos[1],1]
-            return 
-        elif first_pos[0] - next_pos[0] == 1 and first_pos[1] - next_pos[1] == 0:
-            #going left
-            monster_pose = [next_pos[0],next_pos[1],2]
-            return
-        elif first_pos[0] - next_pos[0] == 0 and first_pos[1] - next_pos[1] == -1:
-            #going up
-            monster_pose = [next_pos[0],next_pos[1],3]
-            return
-        elif first_pos[0] - next_pos[0] == 0 and first_pos[1] - next_pos[1] == 1:
-            #going down
-            monster_pose = [next_pos[0],next_pos[1],4]
-            return
-        elif first_pos[0] - next_pos[0] == -1 and first_pos[1] - next_pos[1] == -1:
-            #quadrant 1 / top right
-            monster_pose = [next_pos[0],next_pos[1],5]
-            return
-        elif first_pos[0] - next_pos[0] == -1 and first_pos[1] - next_pos[1] == 1:
-            #quadrant 2 / bottom right
-            monster_pose = [next_pos[0],next_pos[1],6]
-            return    
-        elif first_pos[0] - next_pos[0] == 1 and first_pos[1] - next_pos[1] == -1:
-            #quadrant 3 / top left
-            monster_pose = [next_pos[0],next_pos[1],7]
-            return  
-        elif first_pos[0] - next_pos[0] == 1 and first_pos[1] - next_pos[1] == 1:
-            #quadrant 4 / bottom left
-            monster_pose = [next_pos[0],next_pos[1],8]
-            return
                 
         
 
         return monster_pose
            
-                        
+    def get_monster_coord(self, wrld):
+        for x in range(wrld.width()):
+                for y in range(wrld.height()):
+                    if wrld.monsters_at(x,y):
+                        pos = [x, y]
+
+        return pos
         
         
 
@@ -435,12 +461,14 @@ class TestCharacter(CharacterEntity):
         return abs(x1 - x2) + abs(y1 - y2)
 
     ip = 0
+    numloops = 0
 
     def do(self, wrld):
         # Your code here
         # If there are no monsters on the field just path plan and execute
         var = variation.VARIANT_3
         # if self.mode == character_mode.pursuit:
+        
         ip = 0
         
         if not wrld.monsters:
@@ -480,8 +508,12 @@ class TestCharacter(CharacterEntity):
             dx = cell[0] - self.x
             dy = cell[1] - self.y
             self.move(dx,dy)
+                #TO DO: GET THIS VARIABLE TO WORK BY MAKING IT GLOBAL
 
-            self.bomb_in_range(wrld, self.get_monster_path(wrld), self.a_star((wrld, start, end))) 
+            global numloops 
+
+            self.bomb_in_range(wrld, self.get_monster_path(wrld, numloops), path)
+            numloops= numloops +1
 
 
 
