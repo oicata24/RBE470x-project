@@ -9,7 +9,7 @@ from world import World
 import priority_queue
 from enum import Enum
 
-MINIMAX_DEPTH = 6
+MINIMAX_DEPTH = 8
 
 class variation(Enum): ## use if you want to do different actions per variant
     VARIANT_1 = 1
@@ -85,6 +85,133 @@ class TestCharacter(CharacterEntity):
         
         return return_list
 
+    def bomb_in_range(self, wrld):
+        # takes a list of cells of expected monster path and compares it to character path
+        #for each cell in monster expected path, check if A* path comes within 4 perpendicular cells 
+
+        #if true, check if timing is correct
+        #if true, place a bomb at this cell
+
+        return
+
+    def get_monster_path(self, wrld):
+        #takes in a single move from the monster and creates a list of cells that represents the monster's expected path.
+        monster_path = []
+        monster_pose = wrld.get_monster_pose()
+        monster_coord = {monster_pose(0), monster_pose(1)}
+        monster_dir = monster_pose(2)
+
+        current = monster_coord
+
+        L = 1; 
+        while L == 1:
+            if monster_dir == 1:
+                if current == (self.is_cell_walkable(wrld, current(0)+1, current(1))):
+                    monster_path.append((current(0))+1, current(1))
+                else:
+                    L= 0
+                return
+            elif monster_dir == 2:
+                if current == (self.is_cell_walkable(wrld, current(0)-1, current(1))):
+                    monster_path.append((current(0)-1), current(1))
+                else:
+                    L= 0
+                return
+            elif monster_dir == 3:
+                if current == (self.is_cell_walkable(wrld, current(0), current(1)+1)):
+                    monster_path.append((current(0)), current(1)+1)
+                else:
+                    L= 0
+                return
+            elif monster_dir == 4:
+                if current == (self.is_cell_walkable(wrld, current(0), current(1)-1)):
+                    monster_path.append((current(0)), current(1)-1)
+                else:
+                    L= 0
+                return
+            elif monster_dir == 5:
+                if current == (self.is_cell_walkable(wrld, current(0)+1, current(1)+1)):
+                    monster_path.append((current(0)+1), current(1)+1)
+                else:
+                    L= 0
+                return
+            elif monster_dir == 6:
+                if current == (self.is_cell_walkable(wrld, current(0)+1, current(1)-1)):
+                    monster_path.append((current(0)+1), current(1)-1)
+                else:
+                    L= 0
+                return
+            elif monster_dir == 7:
+                if current == (self.is_cell_walkable(wrld, current(0)-1, current(1)+1)):
+                    monster_path.append((current(0)-1), current(1)+1)
+                else:
+                    L= 0
+                return
+            elif monster_dir == 8:
+                if current == (self.is_cell_walkable(wrld, current(0)-1, current(1)-1)):
+                    monster_path.append((current(0)-1), current(1)-1)
+                else:
+                    L= 0
+                return
+
+
+        return monster_path
+
+    def get_monster_pose(self, wrld):
+        #first, find monster position
+        first_pos = [0,0]
+        next_pos = [0,0]
+        monster_pose = [0,0,0]
+
+        for x in range(wrld.height()):
+                for y in range(wrld.width()):
+                    if wrld.monsters_at and next_pos is {0,0}:
+                        first_pos = {x, y}
+                    else:
+                        next_pos = {x, y}
+
+        #then use the difference of next pos and first pos to calculate trajectory
+        
+        if first_pos(0) - next_pos(0) is -1 and first_pos(1) - next_pos(1) is 0:
+            #going right
+            monster_pose = {next_pos(0),next_pos(1),1}
+            return 
+        elif first_pos(0) - next_pos(0) is 1 and first_pos(1) - next_pos(1) is 0:
+            #going left
+            monster_pose = {next_pos(0),next_pos(1),2}
+            return
+        elif first_pos(0) - next_pos(0) is 0 and first_pos(1) - next_pos(1) is -1:
+            #going up
+            monster_pose = {next_pos(0),next_pos(1),3}
+            return
+        elif first_pos(0) - next_pos(0) is 0 and first_pos(1) - next_pos(1) is 1:
+            #going down
+            monster_pose = {next_pos(0),next_pos(1),4}
+            return
+        elif first_pos(0) - next_pos(0) is -1 and first_pos(1) - next_pos(1) is -1:
+            #quadrant 1 / top right
+            monster_pose = {next_pos(0),next_pos(1),5}
+            return
+        elif first_pos(0) - next_pos(0) is -1 and first_pos(1) - next_pos(1) is 1:
+            #quadrant 2 / bottom right
+            monster_pose = {next_pos(0),next_pos(1),6}
+            return    
+        elif first_pos(0) - next_pos(0) is 1 and first_pos(1) - next_pos(1) is -1:
+            #quadrant 3 / top left
+            monster_pose = {next_pos(0),next_pos(1),7}
+            return  
+        elif first_pos(0) - next_pos(0) is 1 and first_pos(1) - next_pos(1) is 1:
+            #quadrant 4 / bottom left
+            monster_pose = {next_pos(0),next_pos(1),8}
+            return  
+
+        return monster_pose
+           
+                        
+        
+        
+
+
     def grid_to_index(self, wrld, x, y):
         """
         Returns the index corresponding to the given (x,y) coordinates in the occupancy grid.
@@ -118,7 +245,7 @@ class TestCharacter(CharacterEntity):
         flag = True
         frontier.put(start_point, 0)
         # for cell in self.neighbors_of_8(wrld, start[0], start[1]):
-        #     h = abs(goal[0] - cell[0]) + abs(goal[1] - cell[1])
+        #     h = abs(goal[0] - cell[0]) + abs(goal[1] - cell[1])orthoganal
         #     frontier.put(cell, h)
 
         while not frontier.empty():
