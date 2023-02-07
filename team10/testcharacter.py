@@ -85,12 +85,47 @@ class TestCharacter(CharacterEntity):
         
         return return_list
 
-    def bomb_in_range(self, wrld):
+    def bomb_in_range(self, wrld, bomber_path, mon_path):
         # takes a list of cells of expected monster path and compares it to character path
         #for each cell in monster expected path, check if A* path comes within 4 perpendicular cells 
+        
+        monster_index_path_instance = []
+        monster_index_path = []
+        #this for loop creates a list of lists, being a list of sets of three representing x,y, and turn order
+        for value in mon_path:
+             l = 0
+             if l < 3:
+                monster_index_path_instance.append(value)
+                return
+             monster_index_path.append(monster_index_path_instance)
 
-        #if true, check if timing is correct
-        #if true, place a bomb at this cell
+        bomber_index_path_instance = []
+        bomber_index_path = []
+        #we do this for the player path as well
+        for value in bomber_path:
+             l = 0
+             if l < 3:
+                bomber_index_path_instance.append(value)
+                return
+             bomber_index_path.append(bomber_index_path_instance)
+
+
+        #this for loop takes every monster index path instance from monster index path and finds the corresponding turn
+        #in the player's A* path, if the cells are within 4 perpendicular cells of one another, the player is instructed to 
+        #place a bomb at that cell
+        bombsite = bool
+
+        for monster_turn in monster_index_path:
+            for char_turn in bomber_index_path:
+                if char_turn(2) == monster_turn(2):
+                    if char_turn(0) == monster_turn(0) and abs(char_turn(1) - monster_turn(1)) < 4 and char_turn(1) == monster_turn(1) and abs(char_turn(0) - monster_turn(0)) < 4:
+                        bombsite = True
+                    bombsite = False
+
+            
+            
+        #give an index to each cell in both the character and monster path, if paths come within 4 cells of perpendicular distance 
+        #and match index, that cell is marked as a 'bombsite'
 
         return
 
@@ -102,54 +137,80 @@ class TestCharacter(CharacterEntity):
         monster_dir = monster_pose(2)
 
         current = monster_coord
+        #this if statement sets the monster path index (or monster's turn order) to zero if its the first loop
+        #this prevents the player path and monster path from having mismatched indices
+        first = True
+        if (first is not True):
+            i = i
+            return
+        else:
+            i = 0
 
-        L = 1; 
+        first = False
+        L = 1
         while L == 1:
-            if monster_dir == 1:
+
+            if monster_dir == 1: #right
                 if current == (self.is_cell_walkable(wrld, current(0)+1, current(1))):
                     monster_path.append((current(0))+1, current(1))
+                    i = i+1
+                    monster_path.append(i)
                 else:
                     L= 0
                 return
-            elif monster_dir == 2:
+            elif monster_dir == 2: #left
                 if current == (self.is_cell_walkable(wrld, current(0)-1, current(1))):
                     monster_path.append((current(0)-1), current(1))
+                    i = i+1
+                    monster_path.append(i)
                 else:
                     L= 0
                 return
-            elif monster_dir == 3:
+            elif monster_dir == 3:# up
                 if current == (self.is_cell_walkable(wrld, current(0), current(1)+1)):
                     monster_path.append((current(0)), current(1)+1)
+                    i = i+1
+                    monster_path.append(i)
                 else:
                     L= 0
                 return
-            elif monster_dir == 4:
+            elif monster_dir == 4: #down
                 if current == (self.is_cell_walkable(wrld, current(0), current(1)-1)):
                     monster_path.append((current(0)), current(1)-1)
+                    i = i+1
+                    monster_path.append(i)
                 else:
                     L= 0
                 return
-            elif monster_dir == 5:
+            elif monster_dir == 5:# top right
                 if current == (self.is_cell_walkable(wrld, current(0)+1, current(1)+1)):
                     monster_path.append((current(0)+1), current(1)+1)
+                    i = i+1
+                    monster_path.append(i)
                 else:
                     L= 0
                 return
-            elif monster_dir == 6:
+            elif monster_dir == 6: #bottom right
                 if current == (self.is_cell_walkable(wrld, current(0)+1, current(1)-1)):
                     monster_path.append((current(0)+1), current(1)-1)
+                    i = i+1
+                    monster_path.append(i)
                 else:
                     L= 0
                 return
-            elif monster_dir == 7:
+            elif monster_dir == 7: #bottom left
                 if current == (self.is_cell_walkable(wrld, current(0)-1, current(1)+1)):
                     monster_path.append((current(0)-1), current(1)+1)
+                    i = i+1
+                    monster_path.append(i)
                 else:
                     L= 0
                 return
-            elif monster_dir == 8:
+            elif monster_dir == 8: #top left
                 if current == (self.is_cell_walkable(wrld, current(0)-1, current(1)-1)):
                     monster_path.append((current(0)-1), current(1)-1)
+                    i = i+1
+                    monster_path.append(i)
                 else:
                     L= 0
                 return
@@ -203,6 +264,8 @@ class TestCharacter(CharacterEntity):
         elif first_pos(0) - next_pos(0) is 1 and first_pos(1) - next_pos(1) is 1:
             #quadrant 4 / bottom left
             monster_pose = {next_pos(0),next_pos(1),8}
+            return
+                
             return  
 
         return monster_pose
@@ -365,6 +428,10 @@ class TestCharacter(CharacterEntity):
             ## DUMB monsters we treat as normal, Variant 2\
             start = (self.x, self.y)
             end = wrld.exitcell
+            #for bomb funct
+            self.bomb_in_range(wrld, self.get_monster_path(wrld), self.a_star((wrld, start, end)))
+
+
             monsters_at = self.look_for_monster(wrld, 2) ## Checking to see if mnster exists within a range of 2
             path = []
             cell = None
