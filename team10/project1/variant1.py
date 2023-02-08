@@ -2,7 +2,7 @@
 import sys
 
 from colorama import Fore, Back
-sys.path.insert(0, '/home/cb/RBE470x-project/Bomberman')
+sys.path.insert(0, '/home/alemoslee/RBE470x-project/Bomberman')
 sys.path.insert(1, '..')
 
 # Import necessary stuff
@@ -10,7 +10,7 @@ from game import Game
 from entity import CharacterEntity
 
 # TODO This is your code!
-sys.path.insert(1, '/home/cb/RBE470x-project/team10')
+sys.path.insert(1, '/home/alemoslee/RBE470x-project/team10')
 
 # Uncomment this if you want the empty test character
 from testcharacter import TestCharacter
@@ -19,7 +19,7 @@ from testcharacter import TestCharacter
 # from interactivecharacter import InteractiveCharacter
 
 # Create the game
-g = Game.fromfile('/home/cb/RBE470x-project/team10/project1/map.txt')
+g = Game.fromfile('/home/alemoslee/RBE470x-project/team10/project1/map.txt')
 
 # TODO Add your character
 
