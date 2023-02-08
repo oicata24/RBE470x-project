@@ -1,7 +1,7 @@
 # This is necessary to find the main code
 import sys
 import math
-sys.path.insert(0, '/home/cb/RBE470x-project/Bomberman')
+sys.path.insert(0, '/home/tyler/RBE470x-project/Bomberman')
 # Import necessary stuff
 from entity import CharacterEntity
 from colorama import Fore, Back
@@ -43,6 +43,23 @@ class TestCharacter(CharacterEntity):
             for move in self.monster_neighbors_of_8(wrld, self.monster_at[0], self.monster_at[1]):
                 if (x, y) == move:
                     return False
+        
+        return True
+
+    def monster_is_cell_walkable(self,wrld, x, y):
+        if wrld.monsters_at(x, y):
+            return False
+        if x > wrld.width() -1 or y > wrld.height() - 1:
+            return False
+        if x < 0 or y < 0:
+            return False
+        if wrld.wall_at(x,y):
+            return False
+        if wrld.monsters_at(x,y):
+            return False
+        if (x,y) in self.blacklist:
+            return False
+        
         
         return True
 
@@ -102,23 +119,30 @@ class TestCharacter(CharacterEntity):
         :return        [[(int,int)]]   A list of walkable 8-neighbors.
         """
         return_list = list()
-        # add the list of walkable neighbor of 4 grid coordinates
-        return_list.append((x+1,y))
-        #  Quadrant 3
-        return_list.append((x-1,y))
-        #  Quadrant 2
-        return_list.append((x,y+1))
-        #  Quadrant 4
-        return_list.append((x,y-1))
+        # Never
+        if(self.monster_is_cell_walkable(wrld, x, y+1)):
+            return_list.append((x,y+1))
+        # Eatneighbors_of_8
+        if(self.monster_is_cell_walkable(wrld, x+1, y)):
+            return_list.append((x+1,y))
+        # Soggy
+        if(self.monster_is_cell_walkable(wrld, x, y-1)):
+            return_list.append((x,y-1))
+        # Watermelons
+        if(self.monster_is_cell_walkable(wrld, x-1, y)):
+            return_list.append((x-1,y))
         #  Quadrant 1
-        return_list.append((x+1,y+1))
+        if(self.monster_is_cell_walkable(wrld, x+1, y+1)):
+            return_list.append((x+1,y+1))
         #  Quadrant 3
-        return_list.append((x-1,y-1))
+        if(self.monster_is_cell_walkable(wrld, x-1, y-1)):
+            return_list.append((x-1,y-1))
         #  Quadrant 2
-        return_list.append((x-1,y+1))
+        if(self.monster_is_cell_walkable(wrld, x-1, y+1)):
+            return_list.append((x-1,y+1))
         #  Quadrant 4
-        return_list.append((x+1,y-1))
-        
+        if(self.monster_is_cell_walkable(wrld, x+1, y-1)):
+            return_list.append((x+1,y-1))
         return return_list
 
     def bomb_escape_cells(self, wrld, x, y):
@@ -232,8 +256,10 @@ class TestCharacter(CharacterEntity):
     #     return path
 
     def minimax(self, wrld, character, monster, depth, is_maximizing):
-        if depth == 0:
+        if depth == 0 and is_maximizing:
             return self.heuristic(wrld, character, monster)
+        elif is_maximizing==False and depth==0:
+            return self.monster_heuristic(wrld, character, monster)
         
         if is_maximizing: ## Character is the maximizing entity
             best_value = float('-inf')
@@ -246,7 +272,7 @@ class TestCharacter(CharacterEntity):
             return best_value ## Return the Characters best move
         else: ## Monster is the minimizing entitiy
             best_value = float('inf')
-            moves = self.neighbors_of_8(wrld, monster[0], monster[1])
+            moves = self.monster_neighbors_of_8(wrld, monster[0], monster[1])
             for move in moves:
                 # monster_move = (move[0] - monster[0], move[1] - monster[1])
                 monster_move = (move[0], move[1])
@@ -268,9 +294,24 @@ class TestCharacter(CharacterEntity):
         return best_move ## The best heuristic value according to the minimax algorithim
 
     def heuristic(self, wrld, friendly, enemy):
-        friendly_distance = self.manhattan_distance(friendly, wrld.exitcell)
+        friendly_distance = self.manhattan_distance(friendly, (1,1))
         enemy_distance = self.manhattan_distance(enemy, friendly)
-        return friendly_distance - enemy_distance
+        
+        #add funct that reduces heuristic if cell is in path of monster
+
+        #
+
+        return abs(enemy_distance - friendly_distance)
+
+    def monster_heuristic(self, wrld, friendly, enemy):
+        friendly_distance = self.manhattan_distance(friendly, (1,1))
+        enemy_distance = self.manhattan_distance(enemy, friendly)
+        
+        #add funct that reduces heuristic if cell is in path of monster
+
+        #
+
+        return enemy_distance - friendly_distance
 
     def manhattan_distance(self, position1, position2):
         x1, y1 = position1
@@ -348,11 +389,17 @@ class TestCharacter(CharacterEntity):
                     dy = cell[1] - self.y
                     self.move(dx,dy)
                     return
+                
                 self.place_bomb()
                 self.bomb_placed = True
                 self.bomb_at = (self.x, self.y)
+
                 self.blacklist_bombsite(4)
+                
                 cell = self.get_best_move(wrld, self.monster_at)
+
+               
+
                 dx = cell[0] - self.x
                 dy = cell[1] - self.y
                 # if(dx != 0 and dy != 0):
@@ -393,6 +440,9 @@ class TestCharacter(CharacterEntity):
                             best_value = value
                             best_move = move
                     path = [best_move]
+
+
+
                 cell = path[0]
                 dx = cell[0] - self.x
                 dy = cell[1] - self.y
