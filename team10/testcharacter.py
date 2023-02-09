@@ -399,7 +399,6 @@ class TestCharacter(CharacterEntity):
                         path = self.a_star(wrld, start, end)
                         if path == False:
                             self.move(0,0)
-                            return
                         cell = path[0]
                         dx = cell[0] - self.x
                         dy = cell[1] - self.y
