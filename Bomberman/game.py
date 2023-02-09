@@ -16,7 +16,7 @@ class Game:
 
     @classmethod
     # def fromfile(cls, fname, sprite_dir="../bomberman/sprites/"):
-    def fromfile(cls, fname, sprite_dir="/home/cb/RBE470x-project/Bomberman/sprites/"):
+    def fromfile(cls, fname, sprite_dir="/home/alemoslee/RBE470x-project/Bomberman/sprites/"):
         with open(fname, 'r') as fd:
             # First lines are parameters
             max_time = int(fd.readline().split()[1])
