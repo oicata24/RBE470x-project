@@ -308,7 +308,7 @@ class TestCharacter(CharacterEntity):
         return abs(enemy_distance - friendly_distance)
 
     def monster_heuristic(self, wrld, friendly, enemy):
-        friendly_distance = self.manhattan_distance(friendly, (1,1))
+        friendly_distance = self.manhattan_distance(friendly, (0,0))
         enemy_distance = self.manhattan_distance(enemy, friendly)
         
         #add funct that reduces heuristic if cell is in path of monster
@@ -388,10 +388,22 @@ class TestCharacter(CharacterEntity):
                                 best_move = move
                         path = [best_move]
                     # for cell in path:
-                    cell = path[0]
-                    dx = cell[0] - self.x
-                    dy = cell[1] - self.y
-                    self.move(dx,dy)
+                    try:
+                        cell = path[0]
+                        dx = cell[0] - self.x
+                        dy = cell[1] - self.y
+                        self.move(dx,dy)
+                    except:
+                        self.blacklist.clear
+                        end = wrld.exitcell
+                        path = self.a_star(wrld, start, end)
+                        if path == False:
+                            self.move(0,0)
+                            return
+                        cell = path[0]
+                        dx = cell[0] - self.x
+                        dy = cell[1] - self.y
+                        self.move(dx,dy)
                     return
                 
                 self.place_bomb()
@@ -450,11 +462,13 @@ class TestCharacter(CharacterEntity):
                     path = [best_move]
                             
 
-                
-                cell = path[0]
-                dx = cell[0] - self.x
-                dy = cell[1] - self.y
-                self.move(dx,dy)
+                try:
+                    cell = path[0]
+                    dx = cell[0] - self.x
+                    dy = cell[1] - self.y
+                    self.move(dx,dy)
+                except:
+                    self.move(0,0)
 
 
 
