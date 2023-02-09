@@ -287,14 +287,18 @@ class TestCharacter(CharacterEntity):
         for move in moves:
             # new_friendly = (move[0] - self.x, move[1] - self.y)
             new_character = (move[0], move[1])
+            if new_character == (move[0], move[1]):
+                new_character == (move[0]+1, move[1]+1)
             value = self.minimax(wrld, new_character, monster, MINIMAX_DEPTH, False)
             if value > best_value:
                 best_value = value
                 best_move = move
+
+
         return best_move ## The best heuristic value according to the minimax algorithim
 
     def heuristic(self, wrld, friendly, enemy):
-        friendly_distance = self.manhattan_distance(friendly, (1,1))
+        friendly_distance = self.manhattan_distance(friendly, (0,0))
         enemy_distance = self.manhattan_distance(enemy, friendly)
         
         #add funct that reduces heuristic if cell is in path of monster
@@ -394,11 +398,11 @@ class TestCharacter(CharacterEntity):
                 self.bomb_placed = True
                 self.bomb_at = (self.x, self.y)
 
-                self.blacklist_bombsite(4)
+                
                 
                 cell = self.get_best_move(wrld, self.monster_at)
 
-               
+                self.blacklist_bombsite(4)
 
                 dx = cell[0] - self.x
                 dy = cell[1] - self.y
@@ -429,8 +433,12 @@ class TestCharacter(CharacterEntity):
                 self.monster_at = None
                 path = self.a_star(wrld, start, end)
                 if path is False: ## no viable path to goal
+                        if self.x == start[0] and self.y == start[1]: 
+                            start = (start[0], start[1]+1)
+
                         end = (0,0)
                         path = self.a_star(wrld, start, end)
+                        
                 if path is False: ## no viable path to start and goal
                     best_move = None
                     best_value = float('inf')
@@ -440,9 +448,9 @@ class TestCharacter(CharacterEntity):
                             best_value = value
                             best_move = move
                     path = [best_move]
+                            
 
-
-
+                
                 cell = path[0]
                 dx = cell[0] - self.x
                 dy = cell[1] - self.y
