@@ -31,7 +31,8 @@ class TestCharacter(CharacterEntity):
         self.bomb_at = None
         self.blacklist = set()
         self.monster_at = None
-        self.weights = [0.23, -0.13, 0.54]
+        self.weights = []
+        self.game_reward = 0
 
     def get_learning_rate(step):
         return learning_rate_end + (learning_rate_start - learning_rate_end) * np.exp(-decay_rate * step)
@@ -45,20 +46,18 @@ class TestCharacter(CharacterEntity):
             return False
         if wrld.wall_at(x,y):
             return False
-        if wrld.monsters_at(x,y):
-            return False
-        if (x,y) in self.blacklist:
-            return False
-        if self.monster_at is not None:
-            for move in self.monster_neighbors_of_16(self.monster_at[0], self.monster_at[1]):
-                if (x, y) == move:
-                    return False
+        # if (x,y) in self.blacklist:
+        #     return False
+        # if self.monster_at is not None:
+        #     for move in self.monster_neighbors_of_16(self.monster_at[0], self.monster_at[1]):
+        #         if (x, y) == move:
+        #             return False
         
         return True
     
     def get_weights(self):
         w = []
-        with open("/home/cb/RBE470x-project/team10/weights.txt", "r") as file:
+        with open("/home/cb/RBE470x-project/team10/weights1.txt", "r") as file:
             lines = file.readlines()
             for line in lines:
                 w.append(float(line[:-1]))
@@ -66,7 +65,7 @@ class TestCharacter(CharacterEntity):
     
     def write_weights(self):
         w = self.weights 
-        with open("/home/cb/RBE470x-project/team10/weights.txt", "w") as file:
+        with open("/home/cb/RBE470x-project/team10/weights1.txt", "w") as file:
             for weight in w:
                 file.write(str(weight) + "\n")
         
@@ -320,6 +319,54 @@ class TestCharacter(CharacterEntity):
             path = self.a_star(wrld, start, end)
             reward = 100 - (2*len(path))
         return reward
+    
+    def q_learning(self, wrld):
+        max_q = -math.inf
+        best_move = None
+        for next in self.neighbors_of_8(wrld, self.x, self.y):
+            next_x = next[0]
+            next_y = next[1]
+            # Distace to exit
+            de = len(self.a_star(wrld, (next_x,next_y), wrld.exitcell))
+            # Distance to monster
+            dm = 0
+            # Distance to bomb
+            db = 0
+            # Distance to explosion
+            dex = 0
+            if wrld.monsters is not None:
+                closest_monster_distance = math.inf
+                for monster in wrld.monsters:
+                    entity = self.monsters[monster]
+                    dist_to_monster = len(self.a_star(wrld, (next_x,next_y), (entity[0].x, entity[0].y)))
+                    if  dist_to_monster < closest_monster_distance:
+                        closest_monster_distance = dist_to_monster
+                dm = closest_monster_distance
+            if wrld.bombs is not None:
+                for bomb in wrld.bombs:
+                    entity = wrld.bombs[bomb]
+                    db = self.euclidean_distance(next_x, next_y, entity.x, entity.y)
+            if wrld.explosions is not None:
+                closest_explosion_distance = math.inf
+                for explosion in wrld.explosions:
+                    entity = wrld.explosions[explosion]
+                    dist_to_explosion = self.euclidean_distance(next_x, next_y, entity.x, entity.y)
+                    if  dist_to_explosion < closest_explosion_distance:
+                        closest_explosion_distance = dist_to_explosion
+                dex = closest_explosion_distance
+            
+
+
+            q = self.weights[0](1/(1+de)) + self.weights[1](1/(1+dm)) + self.weights[2](1/(1+db))
+            if q > max_q:
+                best_move = (next_x, next_y)
+        return best_move
+            
+            
+        
+
+        
+
 
     # def do(self, wrld):
     #     # Your code here
@@ -431,8 +478,8 @@ class TestCharacter(CharacterEntity):
     #             dy = cell[1] - self.y
     #             self.move(dx,dy)
     def do(self, wrld):
-        self.write_weights()
-
+        self.place_bomb()
+        self.move(1, 1)
 
 
 
