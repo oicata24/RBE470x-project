@@ -31,8 +31,17 @@ class TestCharacter(CharacterEntity):
         self.bomb_at = None
         self.blacklist = set()
         self.monster_at = None
-        self.weights = []
+        self.weights = None
         self.game_reward = 0
+        self.previous_q = None
+        self.current_q = None
+        self.delta = 0
+        self.gamma = 0.9
+        self.alpha = 0.5
+        self.fe = 0
+        self.fm = 0
+        self.fb = 0
+        self.fex = 0
 
     def get_learning_rate(step):
         return learning_rate_end + (learning_rate_start - learning_rate_end) * np.exp(-decay_rate * step)
@@ -61,12 +70,11 @@ class TestCharacter(CharacterEntity):
             lines = file.readlines()
             for line in lines:
                 w.append(float(line[:-1]))
-        return w
+        self.weights = w
     
     def write_weights(self):
-        w = self.weights 
         with open("/home/cb/RBE470x-project/team10/weights1.txt", "w") as file:
-            for weight in w:
+            for weight in self.weights:
                 file.write(str(weight) + "\n")
         
 
@@ -302,32 +310,52 @@ class TestCharacter(CharacterEntity):
         """Updates reward and manages events"""
         events = wrld.events
         reward = 0
+        rewrite_weights = False
         for e in events:
             if e.tpe == Event.BOMB_HIT_WALL:
                 reward += 10
-            elif e.tpe == Event.BOMB_HIT_MONSTER:
+            if e.tpe == Event.BOMB_HIT_MONSTER:
                 reward += 50
-            elif e.tpe == Event.BOMB_HIT_CHARACTER:
+            if e.tpe == Event.BOMB_HIT_CHARACTER:
                 reward -= 1000
-            elif e.tpe == Event.CHARACTER_KILLED_BY_MONSTER:
+                rewrite_weights = True
+            if e.tpe == Event.CHARACTER_KILLED_BY_MONSTER:
                 reward -= 10000
-            elif e.tpe == Event.CHARACTER_FOUND_EXIT:
+                rewrite_weights = True
+            if e.tpe == Event.CHARACTER_FOUND_EXIT:
                 reward += 10000
+                rewrite_weights = True
+
         if reward == 0:
             start = (self.x, self.y)
             end = wrld.exitcell
             path = self.a_star(wrld, start, end)
-            reward = 100 - (2*len(path))
-        return reward
+            reward = wrld.time + (2*len(path))
+        if rewrite_weights:
+            counter = 0
+            new_weights = []
+            functions = [self.fe, self.fm, self.fb, self.fex]
+            if self.previous_q is not None:
+                prev_q = self.previous_q
+                ## set new q as previous q
+                self.previous_q = self.game_reward + self.gamma(self.current_q) - prev_q
+                self.delta = self.previous_q - prev_q
+            for weight in self.weights:
+                new_weight = weight + self.alpha(self.delta)(functions[counter])
+                new_weights.append(new_weight)
+                counter += 1
+            self.write_weights()
+        self.game_reward = reward
     
-    def q_learning(self, wrld):
+    def q_learning(self, wrld, state):
         max_q = -math.inf
         best_move = None
-        for next in self.neighbors_of_8(wrld, self.x, self.y):
-            next_x = next[0]
-            next_y = next[1]
+        for action in self.neighbors_of_8(wrld, state[0], state[1]):
+            next_x = action[0]
+            next_y = action[1]
             # Distace to exit
             de = len(self.a_star(wrld, (next_x,next_y), wrld.exitcell))
+            self.fe = 1/(1+de)
             # Distance to monster
             dm = 0
             # Distance to bomb
@@ -342,10 +370,12 @@ class TestCharacter(CharacterEntity):
                     if  dist_to_monster < closest_monster_distance:
                         closest_monster_distance = dist_to_monster
                 dm = closest_monster_distance
+            self.fm = 1/(1+dm)
             if wrld.bombs is not None:
                 for bomb in wrld.bombs:
                     entity = wrld.bombs[bomb]
                     db = self.euclidean_distance(next_x, next_y, entity.x, entity.y)
+            self.fb = 1/(1+db)
             if wrld.explosions is not None:
                 closest_explosion_distance = math.inf
                 for explosion in wrld.explosions:
@@ -354,132 +384,20 @@ class TestCharacter(CharacterEntity):
                     if  dist_to_explosion < closest_explosion_distance:
                         closest_explosion_distance = dist_to_explosion
                 dex = closest_explosion_distance
-            
-
-
-            q = self.weights[0](1/(1+de)) + self.weights[1](1/(1+dm)) + self.weights[2](1/(1+db))
+            self.fex = 1/(1+dex)
+            q = self.weights[0]*(self.fe) + self.weights[1]*(self.fm) + self.weights[2]*(self.fb) + self.weights[3]*(self.fex)
             if q > max_q:
+                max_q = q
                 best_move = (next_x, next_y)
         return best_move
-            
-            
-        
-
-        
-
-
-    # def do(self, wrld):
-    #     # Your code here
-    #     # If there are no monsters on the field just path plan and execute
-    #     var = variation.VARIANT_3
-    #     if self.bomb_placed is True and not wrld.explosions and not wrld.bombs:
-    #         self.bomb_placed = False
-    #         self.blacklist.clear()
-    #         self.bomb_at = None
-    #     if not wrld.monsters:
-    #         start = (self.x, self.y)
-    #         end = wrld.exitcell
-    #         path = self.a_star(wrld, start, end)
-    #         if path is False: ## no viable path to goal
-    #             end = (0,0)
-    #             path = self.a_star(wrld, start, end)
-    #         if path is False: ## no viable path to start and goal
-    #             best_move = None
-    #             best_value = float('inf')
-    #             for move in self.neighbors_of_8(wrld, start[0], start[1]):
-    #                 value = self.manhattan_distance(move, end)
-    #                 if value < best_value:
-    #                     best_value = value
-    #                     best_move = move
-    #             path = [best_move]
-    #         # for cell in path:
-    #         cell = path[0]
-    #         dx = cell[0] - self.x
-    #         dy = cell[1] - self.y
-    #         self.move(dx,dy)
-    #     else: #there are monsters here, change this based on how smart they are
-    #         ## DUMB monsters we treat as normal, Variant 2\
-    #         start = (self.x, self.y)
-    #         end = wrld.exitcell
-    #         monsters_at = self.look_for_monster(wrld, 2) ## Checking to see if mnster exists within a range of 2
-    #         path = []
-    #         cell = None
-    #         if monsters_at[0] is True: ## Yes monsters within range
-    #             self.monster_at = (self.x + monsters_at[1], self.y + monsters_at[2])
-    #             if self.bomb_placed:
-    #                 start = (self.x, self.y)
-    #                 end = (0,0)
-    #                 if start == end:
-    #                     end = (0,1)
-    #                 path = self.a_star(wrld, start, end)
-    #                 if path is False: ## no viable path to start
-    #                     end = wrld.exitcell
-    #                     path = self.a_star(wrld, start, end)
-    #                 if path is False: ## no viable path to both start and end
-    #                     best_move = None
-    #                     best_value = float('inf')
-    #                     for move in self.neighbors_of_8(wrld, start[0], start[1]):
-    #                         value = self.manhattan_distance(move, end)
-    #                         if value < best_value:
-    #                             best_value = value
-    #                             best_move = move
-    #                     path = [best_move]
-    #                 # for cell in path:
-    #                 cell = path[0]
-    #                 dx = cell[0] - self.x
-    #                 dy = cell[1] - self.y
-    #                 self.move(dx,dy)
-    #                 return
-    #             self.place_bomb()
-    #             self.bomb_placed = True
-    #             self.bomb_at = (self.x, self.y)
-    #             cell = self.get_best_move(wrld, self.monster_at)
-    #             self.blacklist_bombsite(4)
-    #             start = (self.x, self.y)
-    #             end = (0,0)
-    #             if start == end:
-    #                 end = (0,1)
-    #             path = self.a_star(wrld, start, end)
-    #             if path is False: ## no viable path to start
-    #                 end = wrld.exitcell
-    #                 path = self.a_star(wrld, start, end)
-    #             if path is False: ## no viable path to both start and end
-    #                 best_move = None
-    #                 best_value = float('inf')
-    #                 for move in self.neighbors_of_8(wrld, start[0], start[1]):
-    #                     value = self.manhattan_distance(move, end)
-    #                     if value < best_value:
-    #                         best_value = value
-    #                         best_move = move
-    #                 path = [best_move]
-    #                 # for cell in path:
-    #                 cell = path[0]
-    #                 dx = cell[0] - self.x
-    #                 dy = cell[1] - self.y
-    #                 self.move(dx,dy)
-    #             return
-    #         else: ## no monsters nearby proceed as normal
-    #             self.monster_at = None
-    #             path = self.a_star(wrld, start, end)
-    #             if path is False: ## no viable path to goal
-    #                     end = (0,0)
-    #                     path = self.a_star(wrld, start, end)
-    #             if path is False: ## no viable path to start and goal
-    #                 best_move = None
-    #                 best_value = float('inf')
-    #                 for move in self.neighbors_of_8(wrld, start[0], start[1]):
-    #                     value = self.manhattan_distance(move, end)
-    #                     if value < best_value:
-    #                         best_value = value
-    #                         best_move = move
-    #                 path = [best_move]
-    #             cell = path[0]
-    #             dx = cell[0] - self.x
-    #             dy = cell[1] - self.y
-    #             self.move(dx,dy)
+    
     def do(self, wrld):
-        self.place_bomb()
-        self.move(1, 1)
-
-
-
+        if self.weights is None:
+            self.get_weights()
+        if self.look_for_monster(wrld, 2)[0] is True:
+            self.place_bomb()
+        best_move = self.q_learning(wrld, (self.x,self.y))
+        self.get_reward(wrld)
+        dx = best_move[0] - self.x
+        dy = best_move[1] - self.y
+        self.move(dx,dy)
