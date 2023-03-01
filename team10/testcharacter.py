@@ -66,14 +66,14 @@ class TestCharacter(CharacterEntity):
     
     def get_weights(self):
         w = []
-        with open("/home/cb/RBE470x-project/team10/weights3.txt", "r") as file:
+        with open("/home/cb/RBE470x-project/team10/weights4.txt", "r") as file:
             lines = file.readlines()
             for line in lines:
                 w.append(float(line[:-1]))
         self.weights = w
     
     def write_weights(self):
-        with open("/home/cb/RBE470x-project/team10/weights3.txt", "w") as file:
+        with open("/home/cb/RBE470x-project/team10/weights4.txt", "w") as file:
             for weight in self.weights:
                 file.write(str(weight) + "\n")
         
@@ -374,7 +374,7 @@ class TestCharacter(CharacterEntity):
             db = 0
             # Distance to explosion
             dex = 0
-            if wrld.monsters:
+            if self.look_for_monster(wrld, 3)[0]:
                 closest_monster_distance = math.inf
                 for monster in wrld.monsters:
                     entity = wrld.monsters[monster]
