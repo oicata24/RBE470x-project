@@ -47,8 +47,8 @@ class TestCharacter(CharacterEntity):
         return learning_rate_end + (learning_rate_start - learning_rate_end) * np.exp(-decay_rate * step)
     
     def is_cell_walkable(self,wrld, x, y):
-        if wrld.monsters_at(x, y):
-            return False
+        # if wrld.monsters_at(x, y):
+        #     return False
         if x > wrld.width() -1 or y > wrld.height() - 1:
             return False
         if x < 0 or y < 0:
@@ -66,14 +66,14 @@ class TestCharacter(CharacterEntity):
     
     def get_weights(self):
         w = []
-        with open("/home/cb/RBE470x-project/team10/weights1.txt", "r") as file:
+        with open("/home/cb/RBE470x-project/team10/weights2.txt", "r") as file:
             lines = file.readlines()
             for line in lines:
                 w.append(float(line[:-1]))
         self.weights = w
     
     def write_weights(self):
-        with open("/home/cb/RBE470x-project/team10/weights1.txt", "w") as file:
+        with open("/home/cb/RBE470x-project/team10/weights2.txt", "w") as file:
             for weight in self.weights:
                 file.write(str(weight) + "\n")
         
@@ -306,50 +306,62 @@ class TestCharacter(CharacterEntity):
             self.blacklist.add((bomb[0] , bomb[1] + buffer))
             self.blacklist.add((bomb[0] , bomb[1] - buffer))
 
-    def get_reward(self, wrld=World):
+    def get_reward(self, wrld):
         """Updates reward and manages events"""
         events = wrld.events
         reward = 0
         rewrite_weights = False
         for e in events:
             if e.tpe == Event.BOMB_HIT_WALL:
-                reward += 10
+                reward += 1
             if e.tpe == Event.BOMB_HIT_MONSTER:
-                reward += 50
+                reward += 5
             if e.tpe == Event.BOMB_HIT_CHARACTER:
-                reward -= 1000
+                reward -= 100
                 rewrite_weights = True
             if e.tpe == Event.CHARACTER_KILLED_BY_MONSTER:
-                reward -= 10000
+                reward -= 100
                 rewrite_weights = True
             if e.tpe == Event.CHARACTER_FOUND_EXIT:
-                reward += 10000
+                reward += 100
                 rewrite_weights = True
 
         if reward == 0:
-            start = (self.x, self.y)
-            end = wrld.exitcell
-            path = self.a_star(wrld, start, end)
-            reward = wrld.time + (2*len(path))
+            # start = (self.x, self.y)
+            # end = wrld.exitcell
+            # path = self.a_star(wrld, start, end)
+            reward = -1
+            if not wrld.characters: ## Monster killed character
+                reward -= 100
+                rewrite_weights = True
         if rewrite_weights:
             counter = 0
             new_weights = []
             functions = [self.fe, self.fm, self.fb, self.fex]
             if self.previous_q is not None:
-                prev_q = self.previous_q
                 ## set new q as previous q
-                self.previous_q = self.game_reward + self.gamma(self.current_q) - prev_q
-                self.delta = self.previous_q - prev_q
+                new_q = self.game_reward + self.gamma*(self.current_q) - self.previous_q
+                self.delta = new_q - self.previous_q
             for weight in self.weights:
-                new_weight = weight + self.alpha(self.delta)(functions[counter])
+                new_weight = weight + self.alpha*(self.delta)*(functions[counter])
+                new_weight = self.clamp(new_weight, -1, 1)
                 new_weights.append(new_weight)
                 counter += 1
-            self.write_weights()
-        self.game_reward = reward
+            self.weights = new_weights
+            # self.write_weights()
+        self.game_reward += reward
     
+    def clamp(self, n, minn, maxn):
+        if n > maxn:
+            return maxn
+        if n <  minn:
+            return minn
+        return n
+
     def q_learning(self, wrld, state):
         max_q = -math.inf
         best_move = None
+        self.previous_q = self.current_q
         for action in self.neighbors_of_8(wrld, state[0], state[1]):
             next_x = action[0]
             next_y = action[1]
@@ -362,25 +374,33 @@ class TestCharacter(CharacterEntity):
             db = 0
             # Distance to explosion
             dex = 0
-            if wrld.monsters is not None:
+            if wrld.monsters:
                 closest_monster_distance = math.inf
                 for monster in wrld.monsters:
-                    entity = self.monsters[monster]
+                    entity = wrld.monsters[monster]
                     dist_to_monster = len(self.a_star(wrld, (next_x,next_y), (entity[0].x, entity[0].y)))
                     if  dist_to_monster < closest_monster_distance:
                         closest_monster_distance = dist_to_monster
                 dm = closest_monster_distance
             self.fm = 1/(1+dm)
-            if wrld.bombs is not None:
+            if wrld.bombs:
                 for bomb in wrld.bombs:
                     entity = wrld.bombs[bomb]
                     db = self.euclidean_distance(next_x, next_y, entity.x, entity.y)
             self.fb = 1/(1+db)
-            if wrld.explosions is not None:
+            if wrld.explosions:
                 closest_explosion_distance = math.inf
                 for explosion in wrld.explosions:
                     entity = wrld.explosions[explosion]
                     dist_to_explosion = self.euclidean_distance(next_x, next_y, entity.x, entity.y)
+                    if  dist_to_explosion < closest_explosion_distance:
+                        closest_explosion_distance = dist_to_explosion
+                dex = closest_explosion_distance
+            elif not len(self.blacklist) == 0:
+                closest_explosion_distance = math.inf
+                for explosion in self.blacklist:
+                    entity = explosion
+                    dist_to_explosion = self.euclidean_distance(next_x, next_y, entity[0], entity[1])
                     if  dist_to_explosion < closest_explosion_distance:
                         closest_explosion_distance = dist_to_explosion
                 dex = closest_explosion_distance
@@ -389,13 +409,18 @@ class TestCharacter(CharacterEntity):
             if q > max_q:
                 max_q = q
                 best_move = (next_x, next_y)
+        self.current_q = max_q
         return best_move
     
     def do(self, wrld):
+        if not wrld.bombs:
+            self.blacklist.clear()
         if self.weights is None:
             self.get_weights()
         if self.look_for_monster(wrld, 2)[0] is True:
             self.place_bomb()
+            self.bomb_at = (self.x, self.y)
+            self.blacklist_bombsite(4)
         best_move = self.q_learning(wrld, (self.x,self.y))
         self.get_reward(wrld)
         dx = best_move[0] - self.x

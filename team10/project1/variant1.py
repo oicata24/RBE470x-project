@@ -22,13 +22,12 @@ from testcharacter import TestCharacter
 g = Game.fromfile('/home/cb/RBE470x-project/team10/project1/map.txt')
 
 # TODO Add your character
-
-# Uncomment this if you want the test character
-g.add_character(TestCharacter("me", # name
-                            "C",  # avatar
-                            0, 0  # position
-))
-
+my_character = TestCharacter("me", # name
+                              "C",  # avatar
+                              0, 0  # position
+)
+# TODO Add your character
+g.add_character(my_character)
 # Uncomment this if you want the interactive character
 # g.add_character(InteractiveCharacter("me", # name
 #                                      "C",  # avatar
@@ -42,3 +41,4 @@ g.add_character(TestCharacter("me", # name
 
 # Use this if you want to proceed automatically
 g.go(1)
+my_character.get_reward(g.world)

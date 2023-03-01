@@ -13,18 +13,19 @@ sys.path.insert(1, '/home/cb/RBE470x-project/team10')
 from testcharacter import TestCharacter
 
 # Create the game
-random.seed(487) # TODO Change this if you want different random choices
+random.seed(4320) # TODO Change this if you want different random choices
 g = Game.fromfile('/home/cb/RBE470x-project/team10/project1/map.txt')
 g.add_monster(StupidMonster("stupid", # name
                             "S",      # avatar
                             3, 9      # position
 ))
-
-# TODO Add your character
-g.add_character(TestCharacter("me", # name
+my_character = TestCharacter("me", # name
                               "C",  # avatar
                               0, 0  # position
-))
+)
+# TODO Add your character
+g.add_character(my_character)
 
 # Run!
 g.go(1)
+my_character.get_reward(g.world)
