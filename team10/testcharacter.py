@@ -66,14 +66,14 @@ class TestCharacter(CharacterEntity):
     
     def get_weights(self):
         w = []
-        with open("/home/cb/RBE470x-project/team10/weights2.txt", "r") as file:
+        with open("/home/cb/RBE470x-project/team10/weights3.txt", "r") as file:
             lines = file.readlines()
             for line in lines:
                 w.append(float(line[:-1]))
         self.weights = w
     
     def write_weights(self):
-        with open("/home/cb/RBE470x-project/team10/weights2.txt", "w") as file:
+        with open("/home/cb/RBE470x-project/team10/weights3.txt", "w") as file:
             for weight in self.weights:
                 file.write(str(weight) + "\n")
         
@@ -381,7 +381,7 @@ class TestCharacter(CharacterEntity):
                     dist_to_monster = len(self.a_star(wrld, (next_x,next_y), (entity[0].x, entity[0].y)))
                     if  dist_to_monster < closest_monster_distance:
                         closest_monster_distance = dist_to_monster
-                dm = closest_monster_distance
+                dm = closest_monster_distance + 2
             self.fm = 1/(1+dm)
             if wrld.bombs:
                 for bomb in wrld.bombs:
@@ -415,9 +415,10 @@ class TestCharacter(CharacterEntity):
     def do(self, wrld):
         if not wrld.bombs:
             self.blacklist.clear()
+            self.bomb_at = None
         if self.weights is None:
             self.get_weights()
-        if self.look_for_monster(wrld, 2)[0] is True:
+        if self.look_for_monster(wrld, 3)[0] is True and not wrld.explosions and self.bomb_at is None:
             self.place_bomb()
             self.bomb_at = (self.x, self.y)
             self.blacklist_bombsite(4)
