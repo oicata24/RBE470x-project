@@ -41,4 +41,4 @@ g.add_character(my_character)
 
 # Use this if you want to proceed automatically
 g.go(1)
-my_character.get_reward(g.world)
+# my_character.get_reward(g.world) UNCOMMENT FOR TRAINING PURPOSES

@@ -47,33 +47,27 @@ class TestCharacter(CharacterEntity):
         return learning_rate_end + (learning_rate_start - learning_rate_end) * np.exp(-decay_rate * step)
     
     def is_cell_walkable(self,wrld, x, y):
-        # if wrld.monsters_at(x, y):
-        #     return False
         if x > wrld.width() -1 or y > wrld.height() - 1:
             return False
         if x < 0 or y < 0:
             return False
         if wrld.wall_at(x,y):
             return False
-        # if (x,y) in self.blacklist:
-        #     return False
-        # if self.monster_at is not None:
-        #     for move in self.monster_neighbors_of_16(self.monster_at[0], self.monster_at[1]):
-        #         if (x, y) == move:
-        #             return False
         
         return True
     
     def get_weights(self):
         w = []
-        with open("/home/cb/RBE470x-project/team10/weights4.txt", "r") as file:
+        ## Change path to acess weights
+        with open("/home/cb/RBE470x-project/team10/weights.txt", "r") as file:
             lines = file.readlines()
             for line in lines:
                 w.append(float(line[:-1]))
         self.weights = w
     
     def write_weights(self):
-        with open("/home/cb/RBE470x-project/team10/weights4.txt", "w") as file:
+        # change path to acess weights
+        with open("/home/cb/RBE470x-project/team10/weights.txt", "w") as file:
             for weight in self.weights:
                 file.write(str(weight) + "\n")
         
@@ -190,9 +184,6 @@ class TestCharacter(CharacterEntity):
         cost_so_far[start_point] = 0
         flag = True
         frontier.put(start_point, 0)
-        # for cell in self.neighbors_of_8(wrld, start[0], start[1]):
-        #     h = abs(goal[0] - cell[0]) + abs(goal[1] - cell[1])
-        #     frontier.put(cell, h)
 
         while not frontier.empty():
 
@@ -213,7 +204,14 @@ class TestCharacter(CharacterEntity):
         path_node = (goal[0], goal[1])
         while flag:
             if path_node not in came_from:
-                return False
+                closest = (0,0)
+                closest_distance = 50
+                for node in came_from:
+                    distance = self.manhattan_distance((node[0],node[1]), (goal[0], goal[1]))
+                    if distance < closest_distance:
+                        closest = node
+                        closest_distance = distance
+                return self.a_star(wrld, start, closest)
             if came_from[path_node] is None :
                 flag = False
             else:
@@ -234,22 +232,18 @@ class TestCharacter(CharacterEntity):
         # Nothing found
         return (False, 0, 0)
     
-    ## PROTOTYPE MINIMAX
-    # def minimax(self, wrld, dx, dy):
-    #     start = (self.x, self.y)
-    #     end = wrld.exitcell
-
-        
-    #     monster_move = (0 , 0)
-    #     weight = 100 # set some high number so the first distance measurement is always less
-    #     for next in self.neighbors_of_8(wrld, self.x + dx, self.y + dy, False): # find all of the monsters next possible moves
-    #         d = self.euclidean_distance(self.x, self.y, next[0], next[1])
-    #         if d < weight: # expect the monster will pick the move with the shortest distance to the character
-    #             weight = d
-    #             monster_move = next
-    #     self.blacklist.add(monster_move)
-    #     path = self.a_star(wrld, start, end, True)
-    #     return path
+    def look_for_wall(self, wrld, rnge):
+        for dx in range(-rnge, rnge+1):
+            # Avoid out-of-bounds access
+            if ((self.x + dx >= 0) and (self.x + dx < wrld.width())):
+                for dy in range(-rnge, rnge+1):
+                    # Avoid out-of-bounds access
+                    if ((self.y + dy >= 0) and (self.y + dy < wrld.height())):
+                        # Is a character at this position?
+                        if (wrld.wall_at(self.x + dx, self.y + dy)):
+                            return (True, dx, dy)
+        # Nothing found
+        return (False, 0, 0)
 
     def minimax(self, wrld, character, monster, depth, is_maximizing):
         if depth == 0:
@@ -327,9 +321,6 @@ class TestCharacter(CharacterEntity):
                 rewrite_weights = True
 
         if reward == 0:
-            # start = (self.x, self.y)
-            # end = wrld.exitcell
-            # path = self.a_star(wrld, start, end)
             reward = -1
             if not wrld.characters: ## Monster killed character
                 reward -= 100
@@ -339,16 +330,17 @@ class TestCharacter(CharacterEntity):
             new_weights = []
             functions = [self.fe, self.fm, self.fb, self.fex]
             if self.previous_q is not None:
-                ## set new q as previous q
+                ## use current q because game has finished
                 new_q = self.game_reward + self.gamma*(self.current_q) - self.previous_q
                 self.delta = new_q - self.previous_q
             for weight in self.weights:
                 new_weight = weight + self.alpha*(self.delta)*(functions[counter])
+                # limited for training purposes
                 new_weight = self.clamp(new_weight, -1, 1)
                 new_weights.append(new_weight)
                 counter += 1
             self.weights = new_weights
-            # self.write_weights()
+            # self.write_weights() UNCOMMENT FOR TRAINING PURPOSES
         self.game_reward += reward
     
     def clamp(self, n, minn, maxn):
@@ -374,7 +366,7 @@ class TestCharacter(CharacterEntity):
             db = 0
             # Distance to explosion
             dex = 0
-            if self.look_for_monster(wrld, 3)[0]:
+            if self.look_for_monster(wrld, 3)[0]: # only take monster into account when it is nearby
                 closest_monster_distance = math.inf
                 for monster in wrld.monsters:
                     entity = wrld.monsters[monster]
@@ -383,20 +375,20 @@ class TestCharacter(CharacterEntity):
                         closest_monster_distance = dist_to_monster
                 dm = closest_monster_distance + 2
             self.fm = 1/(1+dm)
-            if wrld.bombs:
+            if wrld.bombs: # get distance to bomb if bomb exists
                 for bomb in wrld.bombs:
                     entity = wrld.bombs[bomb]
                     db = self.euclidean_distance(next_x, next_y, entity.x, entity.y)
             self.fb = 1/(1+db)
-            if wrld.explosions:
+            if wrld.explosions: # get distance to explosion if explosion exists
                 closest_explosion_distance = math.inf
-                for explosion in wrld.explosions:
+                for explosion in wrld.explosions: # live bombsite
                     entity = wrld.explosions[explosion]
                     dist_to_explosion = self.euclidean_distance(next_x, next_y, entity.x, entity.y)
                     if  dist_to_explosion < closest_explosion_distance:
                         closest_explosion_distance = dist_to_explosion
                 dex = closest_explosion_distance
-            elif not len(self.blacklist) == 0:
+            elif not len(self.blacklist) == 0: # predicted bombsite
                 closest_explosion_distance = math.inf
                 for explosion in self.blacklist:
                     entity = explosion
@@ -405,25 +397,37 @@ class TestCharacter(CharacterEntity):
                         closest_explosion_distance = dist_to_explosion
                 dex = closest_explosion_distance
             self.fex = 1/(1+dex)
+            # If error thrown here check to make sure weights path is set correctly in read_weights()
             q = self.weights[0]*(self.fe) + self.weights[1]*(self.fm) + self.weights[2]*(self.fb) + self.weights[3]*(self.fex)
-            if q > max_q:
+            if q > max_q: # select the best q value and store the corresponding action
                 max_q = q
                 best_move = (next_x, next_y)
         self.current_q = max_q
         return best_move
     
     def do(self, wrld):
-        if not wrld.bombs:
+        wall_finder = self.look_for_wall(wrld, 2)
+        if not wrld.bombs: # clear bomb variables
             self.blacklist.clear()
             self.bomb_at = None
-        if self.weights is None:
+        if self.weights is None: 
+            # make sure file path is correct in this function
             self.get_weights()
-        if self.look_for_monster(wrld, 3)[0] is True and not wrld.explosions and self.bomb_at is None:
             self.place_bomb()
             self.bomb_at = (self.x, self.y)
             self.blacklist_bombsite(4)
-        best_move = self.q_learning(wrld, (self.x,self.y))
-        self.get_reward(wrld)
+        if self.look_for_monster(wrld, 3)[0] is True and not wrld.explosions and self.bomb_at is None: #Monster or wall is near and no bomb is active
+            self.place_bomb()
+            self.bomb_at = (self.x, self.y)
+            self.blacklist_bombsite(4)
+        elif wall_finder[0] is True and \
+            self.a_star(wrld, (self.x,self.y), wrld.exitcell)[-1][1] < wall_finder[2]\
+                and not wrld.explosions and self.bomb_at is None:
+            self.place_bomb()
+            self.bomb_at = (self.x, self.y)
+            self.blacklist_bombsite(4)
+        best_move = self.q_learning(wrld, (self.x,self.y)) # use q learning algorithim for next move
+        self.get_reward(wrld) # update game rewards
         dx = best_move[0] - self.x
         dy = best_move[1] - self.y
-        self.move(dx,dy)
+        self.move(dx,dy) # move in best direction

@@ -28,4 +28,4 @@ g.add_character(my_character)
 
 # Run!
 g.go(1)
-my_character.get_reward(g.world)
+# my_character.get_reward(g.world) UNCOMMENT FOR TRAINING PURPOSES

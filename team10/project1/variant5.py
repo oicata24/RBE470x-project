@@ -1,6 +1,6 @@
 # This is necessary to find the main code
 import sys
-sys.path.insert(0, '../../bomberman')
+sys.path.insert(0, '/home/cb/RBE470x-project/Bomberman')
 sys.path.insert(1, '..')
 
 # Import necessary stuff
@@ -10,12 +10,12 @@ from monsters.stupid_monster import StupidMonster
 from monsters.selfpreserving_monster import SelfPreservingMonster
 
 # TODO This is your code!
-sys.path.insert(1, '../teamNN')
+sys.path.insert(1, '/home/cb/RBE470x-project/team10')
 from testcharacter import TestCharacter
 
 # Create the game
-random.seed(123) # TODO Change this if you want different random choices
-g = Game.fromfile('map.txt')
+random.seed(2945) # TODO Change this if you want different random choices
+g = Game.fromfile('/home/cb/RBE470x-project/team10/project1/map.txt')
 g.add_monster(StupidMonster("stupid", # name
                             "S",      # avatar
                             3, 5,     # position
@@ -33,4 +33,5 @@ g.add_character(TestCharacter("me", # name
 ))
 
 # Run!
-g.go()
+g.go(1)
+# my_character.get_reward(g.world) UNCOMMENT FOR TRAINING PURPOSES
