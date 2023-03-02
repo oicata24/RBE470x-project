@@ -53,6 +53,8 @@ class TestCharacter(CharacterEntity):
             return False
         if wrld.wall_at(x,y):
             return False
+        if (x,y) in self.blacklist:
+            return False
         
         return True
     
@@ -233,6 +235,8 @@ class TestCharacter(CharacterEntity):
         return (False, 0, 0)
     
     def look_for_wall(self, wrld, rnge):
+        bottom_y = 0
+        lowest_wall = None
         for dx in range(-rnge, rnge+1):
             # Avoid out-of-bounds access
             if ((self.x + dx >= 0) and (self.x + dx < wrld.width())):
@@ -240,10 +244,12 @@ class TestCharacter(CharacterEntity):
                     # Avoid out-of-bounds access
                     if ((self.y + dy >= 0) and (self.y + dy < wrld.height())):
                         # Is a character at this position?
-                        if (wrld.wall_at(self.x + dx, self.y + dy)):
-                            return (True, dx, dy)
-        # Nothing found
-        return (False, 0, 0)
+                        if (wrld.wall_at(self.x + dx, self.y + dy)) and (self.y + dy) > bottom_y:
+                            lowest_wall = (True, self.x + dx, self.y + dy)
+        if lowest_wall is None:
+            # Nothing found
+            return (False, 0, 0)
+        return lowest_wall
 
     def minimax(self, wrld, character, monster, depth, is_maximizing):
         if depth == 0:
@@ -407,9 +413,15 @@ class TestCharacter(CharacterEntity):
     
     def do(self, wrld):
         wall_finder = self.look_for_wall(wrld, 2)
-        if not wrld.bombs: # clear bomb variables
+        if not wrld.bombs and not wrld.explosions: # clear bomb variables
             self.blacklist.clear()
             self.bomb_at = None
+        if not self.a_star(wrld, (self.x,self.y), wrld.exitcell):
+            if not self.neighbors_of_8(wrld, self.x, self.y):
+                return
+            else:
+                self.move(-1,-1)
+                return
         if self.weights is None: 
             # make sure file path is correct in this function
             self.get_weights()
