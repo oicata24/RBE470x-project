@@ -1,7 +1,7 @@
 # This is necessary to find the main code
 import sys
 import math
-sys.path.insert(0, '/home/cb/RBE470x-project/Bomberman')
+sys.path.insert(0, '/home/tyler/RBE470x-project/Bomberman')
 # Import necessary stuff
 from entity import CharacterEntity
 from colorama import Fore, Back
@@ -66,14 +66,14 @@ class TestCharacter(CharacterEntity):
     
     def get_weights(self):
         w = []
-        with open("/home/cb/RBE470x-project/team10/weights4.txt", "r") as file:
+        with open("/home/tyler/RBE470x-project/team10/weights4.txt", "r") as file:
             lines = file.readlines()
             for line in lines:
                 w.append(float(line[:-1]))
         self.weights = w
     
     def write_weights(self):
-        with open("/home/cb/RBE470x-project/team10/weights4.txt", "w") as file:
+        with open("/home/tyler/RBE470x-project/team10/weights4.txt", "w") as file:
             for weight in self.weights:
                 file.write(str(weight) + "\n")
         
